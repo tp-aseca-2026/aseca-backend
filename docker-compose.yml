@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aseca-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aseca_user
+      POSTGRES_PASSWORD: aseca_password
+      POSTGRES_DB: aseca_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - aseca_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  aseca_postgres_data:
