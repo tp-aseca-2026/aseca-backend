@@ -148,7 +148,7 @@ def fetch_prices(tickers: Sequence[str]) -> Tuple[Dict[str, Decimal], List[Dict[
 
         if len(tickers) == 1:
             ticker = tickers[0]
-            price = extract_single_ticker_price(data)
+            price = extract_single_ticker_price(data, ticker)
             if price is not None:
                 prices[ticker] = price
             return prices, failures
@@ -196,9 +196,17 @@ def fetch_prices_one_by_one(
     return prices, failures
 
 
-def extract_single_ticker_price(data) -> Optional[Decimal]:
+def extract_single_ticker_price(data, ticker: str) -> Optional[Decimal]:
     try:
-        value = data["Close"].dropna().iloc[-1]
+        close_prices = data.get("Close")
+        if close_prices is None:
+            return None
+
+        if hasattr(close_prices, "columns") and ticker in close_prices.columns:
+            value = close_prices[ticker].dropna().iloc[-1]
+        else:
+            value = close_prices.dropna().iloc[-1]
+
         return normalize_price(value)
     except Exception:
         return None
