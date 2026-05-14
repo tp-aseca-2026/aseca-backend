@@ -5,3 +5,75 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+
+enum TransactionType {
+  BUY
+  SELL
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @db.VarChar(255)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions   Transaction[]
+  watchlistItems WatchlistItem[]
+}
+
+model Stock {
+  id          Int      @id @default(autoincrement())
+  ticker      String   @unique @db.VarChar(10)
+  companyName String?  @db.VarChar(255)
+  cik         String?  @unique @db.VarChar(20)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions   Transaction[]
+  priceSnapshots PriceSnapshot[]
+  watchlistItems WatchlistItem[]
+}
+
+model Transaction {
+  id         Int             @id @default(autoincrement())
+  userId     Int
+  stockId    Int
+  type       TransactionType
+  quantity   Int
+  price      Decimal         @db.Decimal(18, 4)
+  executedAt DateTime        @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  stock Stock @relation(fields: [stockId], references: [id])
+
+  @@index([userId])
+  @@index([stockId])
+  @@index([userId, stockId])
+}
+
+model PriceSnapshot {
+  id        Int      @id @default(autoincrement())
+  stockId   Int
+  price     Decimal  @db.Decimal(18, 4)
+  source    String   @default("YAHOO_FINANCE")
+  fetchedAt DateTime @default(now())
+
+  stock Stock @relation(fields: [stockId], references: [id])
+
+  @@index([stockId])
+  @@index([stockId, fetchedAt])
+}
+
+model WatchlistItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  stockId   Int
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  stock Stock @relation(fields: [stockId], references: [id])
+
+  @@unique([userId, stockId])
+}
