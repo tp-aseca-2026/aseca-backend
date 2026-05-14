@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
+import { PriceSnapshotsService } from '../../price-snapshots/service/price-snapshots.service';
 import { StocksService } from '../../stocks/service/stocks.service';
 import type { Transaction } from '../domain/transaction.entity';
-import { CurrentPriceProvider } from '../price/current-price-provider';
 import { TransactionsRepository } from '../repository/transactions.repository';
 
 @Injectable()
@@ -10,14 +10,21 @@ export class TransactionsService {
   constructor(
     private readonly transactionsRepository: TransactionsRepository,
     private readonly stocksService: StocksService,
-    private readonly currentPriceProvider: CurrentPriceProvider,
+    private readonly priceSnapshotsService: PriceSnapshotsService,
   ) {}
 
-  async buy(userId: number, ticker: string, quantity: number): Promise<Transaction> {
+  async buy(
+    userId: number,
+    ticker: string,
+    quantity: number,
+  ): Promise<Transaction> {
     this.validateQuantity(quantity);
 
     const stock = await this.stocksService.findByTicker(ticker);
-    const price = await this.currentPriceProvider.getCurrentPrice(stock.ticker);
+    const price = await this.priceSnapshotsService.getLatestPriceForStock(
+      stock.id,
+      stock.ticker,
+    );
 
     return this.transactionsRepository.create({
       userId,
@@ -28,7 +35,11 @@ export class TransactionsService {
     });
   }
 
-  async sell(userId: number, ticker: string, quantity: number): Promise<Transaction> {
+  async sell(
+    userId: number,
+    ticker: string,
+    quantity: number,
+  ): Promise<Transaction> {
     this.validateQuantity(quantity);
 
     const stock = await this.stocksService.findByTicker(ticker);
@@ -40,7 +51,10 @@ export class TransactionsService {
       );
     }
 
-    const price = await this.currentPriceProvider.getCurrentPrice(stock.ticker);
+    const price = await this.priceSnapshotsService.getLatestPriceForStock(
+      stock.id,
+      stock.ticker,
+    );
 
     return this.transactionsRepository.create({
       userId,
@@ -64,10 +78,8 @@ export class TransactionsService {
     userId: number,
     stockId: number,
   ): Promise<number> {
-    const transactions = await this.transactionsRepository.findByUserIdAndStockId(
-      userId,
-      stockId,
-    );
+    const transactions =
+      await this.transactionsRepository.findByUserIdAndStockId(userId, stockId);
 
     return transactions.reduce((total, tx) => {
       return tx.type === TransactionType.BUY
