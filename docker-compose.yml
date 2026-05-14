@@ -2,6 +2,7 @@ services:
   api:
     build:
       context: .
+      target: dev
     container_name: aseca-api
     restart: unless-stopped
     depends_on:

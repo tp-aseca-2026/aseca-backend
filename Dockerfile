@@ -1,46 +1,32 @@
+FROM node:22-alpine AS base
+
 WORKDIR /app
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 python3-pip \
-  && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache python3 py3-pip \
+  && python3 -m venv /opt/venv
 
-COPY package*.json ./
-COPY prisma ./prisma/
-COPY prisma.config.ts ./
-
-RUN npm ci
-
-RUN npx prisma generate
+ENV PATH="/opt/venv/bin:${PATH}"
 
 COPY scripts/requirements.txt ./scripts/requirements.txt
-RUN python3 -m pip install --break-system-packages -r scripts/requirements.txt
+RUN pip install --no-cache-dir -r scripts/requirements.txt
+
+COPY package*.json ./
+RUN npm ci
 
 COPY . .
 
-RUN npm run build
+EXPOSE 3000
 
+FROM base AS dev
 
-# ---- Stage 2: production ----
-# Solo instala dependencias de producción y copia los artefactos del builder.
-FROM node:22-alpine AS production
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npm run start:dev"]
 
-WORKDIR /app
+FROM base AS production
 
 ENV NODE_ENV=production
 
-COPY package*.json ./
-COPY prisma ./prisma/
-COPY prisma.config.ts ./
+RUN npx prisma generate \
+  && npm run build \
+  && npm prune --omit=dev
 
-RUN npm ci --omit=dev
-
-# El cliente Prisma se generó en el builder.
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-COPY --from=builder /app/dist ./dist
-
-EXPOSE 3000
-
-# Requiere DATABASE_URL en tiempo de ejecución.
-# Las migraciones se aplican fuera de esta imagen productiva.
-CMD ["node", "dist/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start:prod"]
