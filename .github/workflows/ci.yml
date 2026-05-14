@@ -8,14 +8,22 @@ on:
     branches:
       - main
 
+env:
+  DATABASE_URL: postgresql://test_user:test_password@localhost:5432/aseca_test?schema=public
+  JWT_SECRET: test_secret
+  JWT_EXPIRES_IN: 1d
+
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -32,12 +40,15 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies

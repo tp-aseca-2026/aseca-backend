@@ -13,6 +13,9 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
+  DATABASE_URL: postgresql://test_user:test_password@localhost:5432/aseca_test?schema=public
+  JWT_SECRET: test_secret
+  JWT_EXPIRES_IN: 1d
 
 jobs:
   test:
