@@ -1,5 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { PriceSnapshotsRepository } from '../repository/price-snapshots.repository';
+
+const execFileAsync = promisify(execFile);
+
+export type PriceSnapshotUpdateResult = {
+  processed: number;
+  saved: number;
+  failed: { ticker: string; error: string }[];
+  updatedAt: string | null;
+};
 
 @Injectable()
 export class PriceSnapshotsService {
@@ -59,7 +74,44 @@ export class PriceSnapshotsService {
     return snapshot.price.toNumber();
   }
 
+  async runUpdate(tickers?: string[]): Promise<PriceSnapshotUpdateResult> {
+    const args = ['scripts/update_price_snapshots.py'];
+    const normalizedTickers = tickers
+      ?.map((ticker) => this.normalizeTicker(ticker))
+      .filter(Boolean);
+
+    if (normalizedTickers?.length) {
+      args.push('--tickers', normalizedTickers.join(','));
+    }
+
+    try {
+      const { stdout } = await execFileAsync(
+        process.env.PRICE_SNAPSHOT_PYTHON_COMMAND ?? 'python3',
+        args,
+        {
+          cwd: process.cwd(),
+          timeout: 120_000,
+          maxBuffer: 1024 * 1024,
+        },
+      );
+
+      return JSON.parse(stdout.trim()) as PriceSnapshotUpdateResult;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Price snapshot update failed: ${this.getErrorMessage(error)}`,
+      );
+    }
+  }
+
   private normalizeTicker(ticker: string): string {
     return ticker.trim().toUpperCase();
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    return 'Unknown error';
   }
 }
