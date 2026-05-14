@@ -1,9 +1,8 @@
-# ---- Stage 1: builder ----
-# Instala todas las dependencias, genera el cliente Prisma
-# y compila el TypeScript a JavaScript.
-FROM node:22-alpine AS builder
-
 WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 python3-pip \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -11,11 +10,10 @@ COPY prisma.config.ts ./
 
 RUN npm ci
 
-# Prisma 7 lee DATABASE_URL desde prisma.config.ts incluso para generate.
-# Usamos una URL dummy solo para generar el cliente durante el build.
-ENV DATABASE_URL="postgresql://test_user:test_password@localhost:5432/aseca_test?schema=public"
-
 RUN npx prisma generate
+
+COPY scripts/requirements.txt ./scripts/requirements.txt
+RUN python3 -m pip install --break-system-packages -r scripts/requirements.txt
 
 COPY . .
 

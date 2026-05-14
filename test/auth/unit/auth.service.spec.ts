@@ -5,8 +5,6 @@ import * as bcrypt from 'bcrypt';
 import { UsersRepository } from '../../../src/users/repository/users.repository';
 import { AuthService } from '../../../src/auth/service/auth.service';
 
-
-
 describe('AuthService', () => {
   let authService: AuthService;
   let usersRepository: jest.Mocked<UsersRepository>;
