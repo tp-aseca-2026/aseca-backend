@@ -16,7 +16,9 @@ export class PriceSnapshotsRepository {
     });
   }
 
-  async findLatestByTicker(ticker: string): Promise<PriceSnapshotWithStock | null> {
+  async findLatestByTicker(
+    ticker: string,
+  ): Promise<PriceSnapshotWithStock | null> {
     return this.prisma.priceSnapshot.findFirst({
       where: {
         stock: { ticker },

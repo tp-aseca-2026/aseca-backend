@@ -106,16 +106,16 @@ describe('TransactionsService', () => {
     });
 
     it('throws BadRequestException when quantity is zero', async () => {
-      await expect(transactionsService.buy(42, 'AAPL', 0)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        transactionsService.buy(42, 'AAPL', 0),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(transactionsRepository.create).not.toHaveBeenCalled();
     });
 
     it('throws BadRequestException when quantity is negative', async () => {
-      await expect(transactionsService.buy(42, 'AAPL', -3)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        transactionsService.buy(42, 'AAPL', -3),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(transactionsRepository.create).not.toHaveBeenCalled();
     });
 
@@ -124,9 +124,9 @@ describe('TransactionsService', () => {
         new NotFoundException('Stock not found'),
       );
 
-      await expect(transactionsService.buy(42, 'NOPE', 1)).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        transactionsService.buy(42, 'NOPE', 1),
+      ).rejects.toBeInstanceOf(NotFoundException);
       expect(transactionsRepository.create).not.toHaveBeenCalled();
     });
   });
@@ -161,9 +161,9 @@ describe('TransactionsService', () => {
         makeTransaction({ type: TransactionType.BUY, quantity: 3 }),
       ]);
 
-      await expect(transactionsService.sell(42, 'AAPL', 5)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        transactionsService.sell(42, 'AAPL', 5),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(transactionsRepository.create).not.toHaveBeenCalled();
     });
 
@@ -179,16 +179,16 @@ describe('TransactionsService', () => {
     });
 
     it('throws BadRequestException when quantity is zero', async () => {
-      await expect(transactionsService.sell(42, 'AAPL', 0)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        transactionsService.sell(42, 'AAPL', 0),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(transactionsRepository.create).not.toHaveBeenCalled();
     });
 
     it('throws BadRequestException when quantity is negative', async () => {
-      await expect(transactionsService.sell(42, 'AAPL', -1)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        transactionsService.sell(42, 'AAPL', -1),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(transactionsRepository.create).not.toHaveBeenCalled();
     });
   });

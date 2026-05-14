@@ -65,7 +65,9 @@ describe('PriceSnapshotsService', () => {
       priceSnapshotsRepository.findAllLatest.mockResolvedValue([
         makeSnapshotWithStock({ fetchedAt }),
       ]);
-      priceSnapshotsRepository.findLastFetchedAt.mockResolvedValue(lastUpdatedAt);
+      priceSnapshotsRepository.findLastFetchedAt.mockResolvedValue(
+        lastUpdatedAt,
+      );
 
       const result = await priceSnapshotsService.getLatestSnapshots();
 
@@ -116,7 +118,8 @@ describe('PriceSnapshotsService', () => {
       });
       priceSnapshotsRepository.findLatestByTicker.mockResolvedValue(snapshot);
 
-      const result = await priceSnapshotsService.getLatestSnapshotByTicker('MSFT');
+      const result =
+        await priceSnapshotsService.getLatestSnapshotByTicker('MSFT');
 
       expect(result).toEqual({
         ticker: 'MSFT',

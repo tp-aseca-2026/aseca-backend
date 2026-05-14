@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { StocksRepository } from '../../../src/stocks/repository/stocks.repository';
 import { StocksService } from '../../../src/stocks/service/stocks.service';
@@ -76,16 +80,16 @@ describe('StocksService', () => {
     it('throws ConflictException when ticker already exists', async () => {
       stocksRepository.findByTicker.mockResolvedValue(makeStock());
 
-      await expect(stocksService.create({ ticker: 'AAPL' })).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(
+        stocksService.create({ ticker: 'AAPL' }),
+      ).rejects.toBeInstanceOf(ConflictException);
       expect(stocksRepository.create).not.toHaveBeenCalled();
     });
 
     it('throws BadRequestException for blank ticker', async () => {
-      await expect(stocksService.create({ ticker: '   ' })).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        stocksService.create({ ticker: '   ' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(stocksRepository.findByTicker).not.toHaveBeenCalled();
       expect(stocksRepository.create).not.toHaveBeenCalled();
     });
@@ -121,9 +125,9 @@ describe('StocksService', () => {
     it('throws NotFoundException when stock does not exist', async () => {
       stocksRepository.findByTicker.mockResolvedValue(null);
 
-      await expect(stocksService.findByTicker('UNKNOWN')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        stocksService.findByTicker('UNKNOWN'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });

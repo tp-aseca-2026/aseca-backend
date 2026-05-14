@@ -13,7 +13,11 @@ export class TransactionsService {
     private readonly priceSnapshotsService: PriceSnapshotsService,
   ) {}
 
-  async buy(userId: number, ticker: string, quantity: number): Promise<Transaction> {
+  async buy(
+    userId: number,
+    ticker: string,
+    quantity: number,
+  ): Promise<Transaction> {
     this.validateQuantity(quantity);
 
     const stock = await this.stocksService.findByTicker(ticker);
@@ -31,7 +35,11 @@ export class TransactionsService {
     });
   }
 
-  async sell(userId: number, ticker: string, quantity: number): Promise<Transaction> {
+  async sell(
+    userId: number,
+    ticker: string,
+    quantity: number,
+  ): Promise<Transaction> {
     this.validateQuantity(quantity);
 
     const stock = await this.stocksService.findByTicker(ticker);
@@ -70,10 +78,8 @@ export class TransactionsService {
     userId: number,
     stockId: number,
   ): Promise<number> {
-    const transactions = await this.transactionsRepository.findByUserIdAndStockId(
-      userId,
-      stockId,
-    );
+    const transactions =
+      await this.transactionsRepository.findByUserIdAndStockId(userId, stockId);
 
     return transactions.reduce((total, tx) => {
       return tx.type === TransactionType.BUY

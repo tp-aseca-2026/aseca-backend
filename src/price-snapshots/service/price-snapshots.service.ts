@@ -60,10 +60,12 @@ export class PriceSnapshotsService {
     };
   }
 
-  async getLatestPriceForStock(stockId: number, ticker: string): Promise<number> {
-    const snapshot = await this.priceSnapshotsRepository.findLatestByStockId(
-      stockId,
-    );
+  async getLatestPriceForStock(
+    stockId: number,
+    ticker: string,
+  ): Promise<number> {
+    const snapshot =
+      await this.priceSnapshotsRepository.findLatestByStockId(stockId);
 
     if (!snapshot) {
       throw new NotFoundException(
