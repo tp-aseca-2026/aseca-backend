@@ -1,8 +1,8 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { TransactionType } from '@prisma/client';
+import { PriceSnapshotsService } from '../../../src/price-snapshots/service/price-snapshots.service';
 import { StocksService } from '../../../src/stocks/service/stocks.service';
-import { CurrentPriceProvider } from '../../../src/transactions/price/current-price-provider';
 import { TransactionsRepository } from '../../../src/transactions/repository/transactions.repository';
 import { TransactionsService } from '../../../src/transactions/service/transactions.service';
 
@@ -31,7 +31,7 @@ describe('TransactionsService', () => {
   let transactionsService: TransactionsService;
   let transactionsRepository: jest.Mocked<TransactionsRepository>;
   let stocksService: jest.Mocked<StocksService>;
-  let currentPriceProvider: jest.Mocked<CurrentPriceProvider>;
+  let priceSnapshotsService: jest.Mocked<PriceSnapshotsService>;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -52,9 +52,9 @@ describe('TransactionsService', () => {
           },
         },
         {
-          provide: CurrentPriceProvider,
+          provide: PriceSnapshotsService,
           useValue: {
-            getCurrentPrice: jest.fn(),
+            getLatestPriceForStock: jest.fn(),
           },
         },
       ],
@@ -63,7 +63,7 @@ describe('TransactionsService', () => {
     transactionsService = moduleRef.get(TransactionsService);
     transactionsRepository = moduleRef.get(TransactionsRepository);
     stocksService = moduleRef.get(StocksService);
-    currentPriceProvider = moduleRef.get(CurrentPriceProvider);
+    priceSnapshotsService = moduleRef.get(PriceSnapshotsService);
   });
 
   describe('buy', () => {
@@ -72,7 +72,7 @@ describe('TransactionsService', () => {
       const tx = makeTransaction({ type: TransactionType.BUY });
 
       stocksService.findByTicker.mockResolvedValue(stock);
-      currentPriceProvider.getCurrentPrice.mockResolvedValue(100);
+      priceSnapshotsService.getLatestPriceForStock.mockResolvedValue(100);
       transactionsRepository.create.mockResolvedValue(tx);
 
       const result = await transactionsService.buy(42, 'AAPL', 5);
@@ -87,16 +87,19 @@ describe('TransactionsService', () => {
       expect(result.type).toBe(TransactionType.BUY);
     });
 
-    it('uses the current price from the provider', async () => {
+    it('uses the latest persisted price snapshot', async () => {
       stocksService.findByTicker.mockResolvedValue(makeStock());
-      currentPriceProvider.getCurrentPrice.mockResolvedValue(250.5);
+      priceSnapshotsService.getLatestPriceForStock.mockResolvedValue(250.5);
       transactionsRepository.create.mockResolvedValue(
         makeTransaction({ price: 250.5 as any }),
       );
 
       await transactionsService.buy(42, 'AAPL', 3);
 
-      expect(currentPriceProvider.getCurrentPrice).toHaveBeenCalledWith('AAPL');
+      expect(priceSnapshotsService.getLatestPriceForStock).toHaveBeenCalledWith(
+        10,
+        'AAPL',
+      );
       expect(transactionsRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({ price: 250.5 }),
       );
@@ -135,7 +138,7 @@ describe('TransactionsService', () => {
       transactionsRepository.findByUserIdAndStockId.mockResolvedValue([
         makeTransaction({ type: TransactionType.BUY, quantity: 10 }),
       ]);
-      currentPriceProvider.getCurrentPrice.mockResolvedValue(100);
+      priceSnapshotsService.getLatestPriceForStock.mockResolvedValue(100);
       transactionsRepository.create.mockResolvedValue(
         makeTransaction({ type: TransactionType.SELL, quantity: 4 }),
       );
