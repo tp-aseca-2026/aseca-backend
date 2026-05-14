@@ -9,9 +9,9 @@ on:
       - main
 
 env:
-  DATABASE_URL: postgresql://test_user:test_password@localhost:5432/aseca_test?schema=public
-  JWT_SECRET: test_secret
-  JWT_EXPIRES_IN: 1d
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
 
 jobs:
   test:

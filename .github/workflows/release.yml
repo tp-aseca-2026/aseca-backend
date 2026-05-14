@@ -13,14 +13,16 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  DATABASE_URL: postgresql://test_user:test_password@localhost:5432/aseca_test?schema=public
-  JWT_SECRET: test_secret
-  JWT_EXPIRES_IN: 1d
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
 
     steps:
       - name: Checkout repository
@@ -129,3 +131,7 @@ jobs:
           push: true
           tags: ${{ steps.docker-tags.outputs.tags }}
           provenance: false
+          secrets: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}

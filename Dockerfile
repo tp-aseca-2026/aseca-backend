@@ -25,7 +25,9 @@ FROM base AS production
 
 ENV NODE_ENV=production
 
-RUN npx prisma generate \
+RUN --mount=type=secret,id=DATABASE_URL \
+  export DATABASE_URL="$(cat /run/secrets/DATABASE_URL)" \
+  && npx prisma generate \
   && npm run build \
   && npm prune --omit=dev
 
