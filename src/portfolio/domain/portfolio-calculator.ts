@@ -1,16 +1,26 @@
+import { Inject, Injectable } from '@nestjs/common';
+
+import type { RoundingPolicy } from './rounding-policy';
+import { ROUNDING_POLICY } from './rounding-policy.token';
 import {
   PortfolioPosition,
   PortfolioSummary,
 } from '../ types/portfolio-position.type';
 
+@Injectable()
 export class PortfolioCalculator {
-  static buildSummary(positions: PortfolioPosition[]): PortfolioSummary {
+  constructor(
+    @Inject(ROUNDING_POLICY)
+    private readonly roundingPolicy: RoundingPolicy,
+  ) {}
+
+  buildSummary(positions: PortfolioPosition[]): PortfolioSummary {
     const totalCostBasis = this.sum(positions.map((p) => p.costBasis));
     const lastPriceUpdatedAt = this.findLastPriceUpdatedAt(positions);
 
     if (this.hasMissingPrices(positions)) {
       return {
-        totalCostBasis: this.roundMoney(totalCostBasis),
+        totalCostBasis: this.roundingPolicy.roundMoney(totalCostBasis),
         currentValue: null,
         profitLoss: null,
         profitLossPercentage: null,
@@ -19,13 +29,12 @@ export class PortfolioCalculator {
     }
 
     const currentValue = this.sum(positions.map((p) => p.currentValue ?? 0));
-
     const profitLoss = currentValue - totalCostBasis;
 
     return {
-      totalCostBasis: this.roundMoney(totalCostBasis),
-      currentValue: this.roundMoney(currentValue),
-      profitLoss: this.roundMoney(profitLoss),
+      totalCostBasis: this.roundingPolicy.roundMoney(totalCostBasis),
+      currentValue: this.roundingPolicy.roundMoney(currentValue),
+      profitLoss: this.roundingPolicy.roundMoney(profitLoss),
       profitLossPercentage: this.calculatePercentage(
         profitLoss,
         totalCostBasis,
@@ -34,33 +43,27 @@ export class PortfolioCalculator {
     };
   }
 
-  static roundMoney(value: number): number {
-    return Math.round(value * 100) / 100;
-  }
-
-  static roundPercentage(value: number): number {
-    return Math.round(value * 100) / 100;
-  }
-
-  static calculatePercentage(value: number, base: number): number {
+  calculatePercentage(value: number, base: number): number {
     if (base === 0) {
       return 0;
     }
 
-    return this.roundPercentage((value / base) * 100);
+    return this.roundingPolicy.roundPercentage((value / base) * 100);
   }
 
-  private static hasMissingPrices(positions: PortfolioPosition[]): boolean {
+  roundMoney(value: number): number {
+    return this.roundingPolicy.roundMoney(value);
+  }
+
+  private hasMissingPrices(positions: PortfolioPosition[]): boolean {
     return positions.some((position) => position.currentValue === null);
   }
 
-  private static sum(values: number[]): number {
+  private sum(values: number[]): number {
     return values.reduce((total, value) => total + value, 0);
   }
 
-  private static findLastPriceUpdatedAt(
-    positions: PortfolioPosition[],
-  ): Date | null {
+  private findLastPriceUpdatedAt(positions: PortfolioPosition[]): Date | null {
     const dates = positions
       .map((position) => position.lastPriceUpdatedAt)
       .filter((date): date is Date => date !== null);

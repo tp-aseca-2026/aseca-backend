@@ -1,9 +1,13 @@
+import { Inject } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import { COST_BASIS_POLICY } from './cost-basis-policy.token';
+import type { CostBasisPolicy } from './cost-basis-policy';
 
 export type TransactionWithStock = {
   stockId: number;
   quantity: number;
-  price: { toNumber(): number };
+  price: Prisma.Decimal;
   type: TransactionType;
   stock: {
     ticker: string;
@@ -20,7 +24,11 @@ export class PortfolioPositionAccumulator {
   private totalBuyCost = 0;
   private totalBoughtQuantity = 0;
 
-  constructor(transaction: TransactionWithStock) {
+  constructor(
+    transaction: TransactionWithStock,
+    @Inject(COST_BASIS_POLICY)
+    private readonly costBasisPolicy: CostBasisPolicy,
+  ) {
     this.stockId = transaction.stockId;
     this.ticker = transaction.stock.ticker;
     this.companyName = transaction.stock.companyName;
@@ -44,15 +52,17 @@ export class PortfolioPositionAccumulator {
   }
 
   getAverageBuyPrice(): number {
-    if (this.totalBoughtQuantity === 0) {
-      return 0;
-    }
-
-    return this.totalBuyCost / this.totalBoughtQuantity;
+    return this.costBasisPolicy.calculateAverageBuyPrice(
+      this.totalBuyCost,
+      this.totalBoughtQuantity,
+    );
   }
 
   getCostBasis(): number {
-    return this.getAverageBuyPrice() * this.quantity;
+    return this.costBasisPolicy.calculateCostBasis(
+      this.quantity,
+      this.getAverageBuyPrice(),
+    );
   }
 
   private applyBuy(transaction: TransactionWithStock): void {

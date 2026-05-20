@@ -1,8 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionType } from '@prisma/client';
+import { PriceSnapshotsRepository } from '../../../src/price-snapshots/repository/price-snapshots.repository';
+import { COST_BASIS_POLICY } from '../../../src/portfolio/domain/cost-basis-policy.token';
+import { MISSING_PRICE_POLICY } from '../../../src/portfolio/domain/missing-price-policy.token';
+import { NullMissingPricePolicy } from '../../../src/portfolio/domain/null-missing-price-policy';
+import { PortfolioCalculator } from '../../../src/portfolio/domain/portfolio-calculator';
+import { ROUNDING_POLICY } from '../../../src/portfolio/domain/rounding-policy.token';
+import { TwoDecimalRoundingPolicy } from '../../../src/portfolio/domain/two-decimal-rounding.policy';
+import { WeightedAverageCostBasisPolicy } from '../../../src/portfolio/domain/weighted-average-cost-basis.policy';
 import { PortfolioService } from '../../../src/portfolio/service/portfolio.service';
 import { TransactionsRepository } from '../../../src/transactions/repository/transactions.repository';
-import { PriceSnapshotsRepository } from '../../../src/price-snapshots/repository/price-snapshots.repository';
 
 const decimalMock = (value: number) => ({
   toNumber: () => value,
@@ -23,6 +30,7 @@ describe('PortfolioService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PortfolioService,
+        PortfolioCalculator,
         {
           provide: TransactionsRepository,
           useValue: transactionsRepository,
@@ -30,6 +38,18 @@ describe('PortfolioService', () => {
         {
           provide: PriceSnapshotsRepository,
           useValue: priceSnapshotsRepository,
+        },
+        {
+          provide: MISSING_PRICE_POLICY,
+          useClass: NullMissingPricePolicy,
+        },
+        {
+          provide: COST_BASIS_POLICY,
+          useClass: WeightedAverageCostBasisPolicy,
+        },
+        {
+          provide: ROUNDING_POLICY,
+          useClass: TwoDecimalRoundingPolicy,
         },
       ],
     }).compile();

@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PriceSnapshotsRepository } from '../../price-snapshots/repository/price-snapshots.repository';
 import { TransactionsRepository } from '../../transactions/repository/transactions.repository';
+import { COST_BASIS_POLICY } from '../domain/cost-basis-policy.token';
+import type { CostBasisPolicy } from '../domain/cost-basis-policy';
 import { PortfolioCalculator } from '../domain/portfolio-calculator';
+import { MISSING_PRICE_POLICY } from '../domain/missing-price-policy.token';
+import type { MissingPricePolicy } from '../domain/missing-price-policy';
 import {
   PortfolioPositionAccumulator,
   TransactionWithStock,
@@ -10,11 +14,17 @@ import {
   PortfolioPosition,
   PortfolioResponse,
 } from '../ types/portfolio-position.type';
+
 @Injectable()
 export class PortfolioService {
   constructor(
     private readonly transactionsRepository: TransactionsRepository,
     private readonly priceSnapshotsRepository: PriceSnapshotsRepository,
+    private readonly portfolioCalculator: PortfolioCalculator,
+    @Inject(MISSING_PRICE_POLICY)
+    private readonly missingPricePolicy: MissingPricePolicy,
+    @Inject(COST_BASIS_POLICY)
+    private readonly costBasisPolicy: CostBasisPolicy,
   ) {}
 
   async getPortfolio(userId: number): Promise<PortfolioResponse> {
@@ -29,7 +39,7 @@ export class PortfolioService {
 
     return {
       positions,
-      summary: PortfolioCalculator.buildSummary(positions),
+      summary: this.portfolioCalculator.buildSummary(positions),
     };
   }
 
@@ -58,7 +68,11 @@ export class PortfolioService {
       return existingPosition;
     }
 
-    const newPosition = new PortfolioPositionAccumulator(transaction);
+    const newPosition = new PortfolioPositionAccumulator(
+      transaction,
+      this.costBasisPolicy,
+    );
+
     positions.set(transaction.stockId, newPosition);
 
     return newPosition;
@@ -71,10 +85,21 @@ export class PortfolioService {
       await this.priceSnapshotsRepository.findLatestByStockId(position.stockId);
 
     if (!latestSnapshot) {
-      return this.buildPositionWithoutMarketPrice(position);
+      return this.missingPricePolicy.buildPositionWithoutPrice(position);
     }
 
-    const latestPrice = latestSnapshot.price.toNumber();
+    return this.buildPositionWithMarketPrice(
+      position,
+      latestSnapshot.price.toNumber(),
+      latestSnapshot.fetchedAt,
+    );
+  }
+
+  private buildPositionWithMarketPrice(
+    position: PortfolioPositionAccumulator,
+    latestPrice: number,
+    lastPriceUpdatedAt: Date,
+  ): PortfolioPosition {
     const currentValue = latestPrice * position.getQuantity();
     const profitLoss = currentValue - position.getCostBasis();
 
@@ -83,38 +108,18 @@ export class PortfolioService {
       ticker: position.ticker,
       companyName: position.companyName,
       quantity: position.getQuantity(),
-      averageBuyPrice: PortfolioCalculator.roundMoney(
+      averageBuyPrice: this.portfolioCalculator.roundMoney(
         position.getAverageBuyPrice(),
       ),
-      costBasis: PortfolioCalculator.roundMoney(position.getCostBasis()),
-      latestPrice: PortfolioCalculator.roundMoney(latestPrice),
-      currentValue: PortfolioCalculator.roundMoney(currentValue),
-      profitLoss: PortfolioCalculator.roundMoney(profitLoss),
-      profitLossPercentage: PortfolioCalculator.calculatePercentage(
+      costBasis: this.portfolioCalculator.roundMoney(position.getCostBasis()),
+      latestPrice: this.portfolioCalculator.roundMoney(latestPrice),
+      currentValue: this.portfolioCalculator.roundMoney(currentValue),
+      profitLoss: this.portfolioCalculator.roundMoney(profitLoss),
+      profitLossPercentage: this.portfolioCalculator.calculatePercentage(
         profitLoss,
         position.getCostBasis(),
       ),
-      lastPriceUpdatedAt: latestSnapshot.fetchedAt,
-    };
-  }
-
-  private buildPositionWithoutMarketPrice(
-    position: PortfolioPositionAccumulator,
-  ): PortfolioPosition {
-    return {
-      stockId: position.stockId,
-      ticker: position.ticker,
-      companyName: position.companyName,
-      quantity: position.getQuantity(),
-      averageBuyPrice: PortfolioCalculator.roundMoney(
-        position.getAverageBuyPrice(),
-      ),
-      costBasis: PortfolioCalculator.roundMoney(position.getCostBasis()),
-      latestPrice: null,
-      currentValue: null,
-      profitLoss: null,
-      profitLossPercentage: null,
-      lastPriceUpdatedAt: null,
+      lastPriceUpdatedAt,
     };
   }
 }
