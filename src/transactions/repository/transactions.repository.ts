@@ -32,4 +32,12 @@ export class TransactionsRepository {
       where: { userId, stockId },
     });
   }
+
+  async findByUserIdWithStock(userId: number) {
+    return this.prisma.transaction.findMany({
+      where: { userId },
+      include: { stock: true },
+      orderBy: { executedAt: 'asc' },
+    });
+  }
 }
