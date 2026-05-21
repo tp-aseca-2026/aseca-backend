@@ -5,6 +5,7 @@ import { DatabaseModule } from './database/database.module';
 import { PriceSnapshotsModule } from './price-snapshots/price-snapshots.module';
 import { StocksModule } from './stocks/stocks.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { WatchlistModule } from './watchlist/watchlist.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     StocksModule,
     PriceSnapshotsModule,
     TransactionsModule,
+    WatchlistModule,
   ],
 })
 export class AppModule {}
