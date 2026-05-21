@@ -7,6 +7,7 @@ import { PriceSnapshotsModule } from './price-snapshots/price-snapshots.module';
 import { StocksModule } from './stocks/stocks.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { WatchlistModule } from './watchlist/watchlist.module';
+import { PortfolioModule } from './portfolio/portfolio.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WatchlistModule } from './watchlist/watchlist.module';
     TransactionsModule,
     EdgarModule,
     WatchlistModule,
+    PortfolioModule,
   ],
 })
 export class AppModule {}
