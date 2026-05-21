@@ -9,5 +9,6 @@ import { TransactionsController } from './transactions.controller';
   imports: [StocksModule, PriceSnapshotsModule],
   controllers: [TransactionsController],
   providers: [TransactionsService, TransactionsRepository],
+  exports: [TransactionsService, TransactionsRepository]
 })
 export class TransactionsModule {}
