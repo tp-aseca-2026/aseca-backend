@@ -23,6 +23,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
 
     steps:
       - name: Checkout repository
@@ -135,3 +136,4 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
+            SEC_USER_AGENT=${{ secrets.SEC_USER_AGENT }}

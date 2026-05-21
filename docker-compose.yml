@@ -11,6 +11,8 @@ services:
     environment:
       DATABASE_URL: postgresql://aseca_user:aseca_password@postgres:5432/aseca_db
       JWT_SECRET: dev-secret
+      JWT_EXPIRES_IN: 1d
+      SEC_USER_AGENT: ASECA Portfolio Tracker dev@example.com
       PRICE_SNAPSHOT_PYTHON_COMMAND: python3
     ports:
       - "3000:3000"
