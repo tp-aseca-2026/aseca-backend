@@ -8,6 +8,12 @@ on:
     branches:
       - main
 
+env:
+  DATABASE_URL: postgresql://ci_user:ci_password@localhost:5432/ci_db?schema=public
+  JWT_SECRET: ci-test-secret
+  JWT_EXPIRES_IN: 1d
+  SEC_USER_AGENT: CI Test ci@example.com
+
 jobs:
   test:
     name: Test
@@ -27,12 +33,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-
-    env:
-      DATABASE_URL: postgresql://ci_user:ci_password@localhost:5432/ci_db
-      JWT_SECRET: ci-test-secret
-      JWT_EXPIRES_IN: 1d
-      SEC_USER_AGENT: CI Test ci@example.com
 
     steps:
       - name: Checkout repository
