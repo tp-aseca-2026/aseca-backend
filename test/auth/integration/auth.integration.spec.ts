@@ -24,9 +24,15 @@ type MeResponse = {
 };
 
 async function cleanTestUsers(prisma: PrismaService): Promise<void> {
-  await prisma.user.deleteMany({
+  const users = await prisma.user.findMany({
     where: { email: { contains: 'auth-integration' } },
+    select: { id: true },
   });
+  if (users.length === 0) return;
+  const ids = users.map((u) => u.id);
+  await prisma.watchlistItem.deleteMany({ where: { userId: { in: ids } } });
+  await prisma.transaction.deleteMany({ where: { userId: { in: ids } } });
+  await prisma.user.deleteMany({ where: { id: { in: ids } } });
 }
 
 describe('Auth (integration)', () => {

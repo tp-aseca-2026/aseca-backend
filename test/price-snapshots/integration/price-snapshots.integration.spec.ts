@@ -332,7 +332,7 @@ describe('PriceSnapshots (integration)', () => {
     });
 
     afterEach(() => {
-      runUpdateSpy.mockRestore();
+      runUpdateSpy?.mockRestore();
     });
 
     it('returns 201 with the update result when the script succeeds', async () => {
