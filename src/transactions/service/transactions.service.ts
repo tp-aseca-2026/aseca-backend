@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
-import { PriceSnapshotsService } from '../../price-snapshots/service/price-snapshots.service';
 import { StocksService } from '../../stocks/service/stocks.service';
 import type { Transaction } from '../domain/transaction.entity';
+import { CurrentPriceProvider } from '../price/current-price-provider';
 import { TransactionsRepository } from '../repository/transactions.repository';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class TransactionsService {
   constructor(
     private readonly transactionsRepository: TransactionsRepository,
     private readonly stocksService: StocksService,
-    private readonly priceSnapshotsService: PriceSnapshotsService,
+    private readonly currentPriceProvider: CurrentPriceProvider,
   ) {}
 
   async buy(
@@ -21,10 +21,7 @@ export class TransactionsService {
     this.validateQuantity(quantity);
 
     const stock = await this.stocksService.findByTicker(ticker);
-    const price = await this.priceSnapshotsService.getLatestPriceForStock(
-      stock.id,
-      stock.ticker,
-    );
+    const price = await this.currentPriceProvider.getCurrentPrice(stock.ticker);
 
     return this.transactionsRepository.create({
       userId,
@@ -51,10 +48,7 @@ export class TransactionsService {
       );
     }
 
-    const price = await this.priceSnapshotsService.getLatestPriceForStock(
-      stock.id,
-      stock.ticker,
-    );
+    const price = await this.currentPriceProvider.getCurrentPrice(stock.ticker);
 
     return this.transactionsRepository.create({
       userId,
