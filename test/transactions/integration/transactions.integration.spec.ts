@@ -118,7 +118,16 @@ describe('Transactions (integration)', () => {
 
     prisma = moduleRef.get(PrismaService);
 
-    await prisma.user.deleteMany({ where: { email: TEST_USER_EMAIL } });
+    const stale = await prisma.user.findMany({
+      where: { email: TEST_USER_EMAIL },
+      select: { id: true },
+    });
+    if (stale.length > 0) {
+      const ids = stale.map((u) => u.id);
+      await prisma.watchlistItem.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.transaction.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.user.deleteMany({ where: { id: { in: ids } } });
+    }
 
     const user = await prisma.user.create({
       data: { email: TEST_USER_EMAIL, passwordHash: 'test-hash-not-real' },
