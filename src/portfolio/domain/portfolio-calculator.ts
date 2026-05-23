@@ -16,28 +16,38 @@ export class PortfolioCalculator {
 
   buildSummary(positions: PortfolioPosition[]): PortfolioSummary {
     const totalCostBasis = this.sum(positions.map((p) => p.costBasis));
+    const realizedProfitLoss = this.sum(
+      positions.map((p) => p.realizedProfitLoss),
+    );
     const lastPriceUpdatedAt = this.findLastPriceUpdatedAt(positions);
 
     if (this.hasMissingPrices(positions)) {
       return {
         totalCostBasis: this.roundingPolicy.roundMoney(totalCostBasis),
         currentValue: null,
-        profitLoss: null,
-        profitLossPercentage: null,
+        unrealizedProfitLoss: null,
+        unrealizedProfitLossPercentage: null,
+        realizedProfitLoss: this.roundingPolicy.roundMoney(realizedProfitLoss),
+        totalProfitLoss: null,
         lastPriceUpdatedAt,
       };
     }
 
     const currentValue = this.sum(positions.map((p) => p.currentValue ?? 0));
-    const profitLoss = currentValue - totalCostBasis;
+    const unrealizedProfitLoss = currentValue - totalCostBasis;
 
     return {
       totalCostBasis: this.roundingPolicy.roundMoney(totalCostBasis),
       currentValue: this.roundingPolicy.roundMoney(currentValue),
-      profitLoss: this.roundingPolicy.roundMoney(profitLoss),
-      profitLossPercentage: this.calculatePercentage(
-        profitLoss,
+      unrealizedProfitLoss:
+        this.roundingPolicy.roundMoney(unrealizedProfitLoss),
+      unrealizedProfitLossPercentage: this.calculatePercentage(
+        unrealizedProfitLoss,
         totalCostBasis,
+      ),
+      realizedProfitLoss: this.roundingPolicy.roundMoney(realizedProfitLoss),
+      totalProfitLoss: this.roundingPolicy.roundMoney(
+        realizedProfitLoss + unrealizedProfitLoss,
       ),
       lastPriceUpdatedAt,
     };

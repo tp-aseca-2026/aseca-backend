@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { MissingPricePolicy } from './missing-price-policy';
-import type { PortfolioPositionAccumulator } from './portfolio-position-accumulator';
+
 import type { RoundingPolicy } from './rounding-policy';
 import { ROUNDING_POLICY } from './rounding-policy.token';
+import type { MissingPricePolicy } from './missing-price-policy';
+import type { PortfolioPositionAccumulator } from './portfolio-position-accumulator';
 import { PortfolioPosition } from '../ types/portfolio-position.type';
 
 @Injectable()
@@ -26,8 +27,12 @@ export class NullMissingPricePolicy implements MissingPricePolicy {
       costBasis: this.roundingPolicy.roundMoney(position.getCostBasis()),
       latestPrice: null,
       currentValue: null,
-      profitLoss: null,
-      profitLossPercentage: null,
+      unrealizedProfitLoss: null,
+      unrealizedProfitLossPercentage: null,
+      realizedProfitLoss: this.roundingPolicy.roundMoney(
+        position.getRealizedProfitLoss(),
+      ),
+      totalProfitLoss: null,
       lastPriceUpdatedAt: null,
     };
   }

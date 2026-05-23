@@ -30,6 +30,10 @@ def main() -> int:
                 return 0
 
             prices, failures = fetch_prices([stock["ticker"] for stock in stocks])
+
+            if should_use_mock_price_fallback():
+                prices = apply_mock_price_fallback(stocks, prices)
+
             saved = persist_snapshots(connection, stocks, prices)
             updated_at = datetime.now(timezone.utc).isoformat()
 
@@ -221,6 +225,35 @@ def normalize_price(value) -> Optional[Decimal]:
         return None
 
     return Decimal(str(numeric_value)).quantize(PRICE_SCALE, rounding=ROUND_HALF_UP)
+
+def should_use_mock_price_fallback() -> bool:
+    return os.getenv("USE_MOCK_PRICE_FALLBACK", "false").lower() == "true"
+
+
+def apply_mock_price_fallback(
+    stocks: Sequence[Dict], prices: Dict[str, Decimal]
+) -> Dict[str, Decimal]:
+    fallback_prices = dict(prices)
+
+    for stock in stocks:
+        ticker = stock["ticker"]
+
+        if ticker not in fallback_prices:
+            fallback_prices[ticker] = get_mock_price_for_ticker(ticker)
+
+    return fallback_prices
+
+
+def get_mock_price_for_ticker(ticker: str) -> Decimal:
+    mock_prices = {
+        "AAPL": Decimal("180.0000"),
+        "MSFT": Decimal("420.0000"),
+        "TSLA": Decimal("250.0000"),
+        "GOOGL": Decimal("170.0000"),
+        "AMZN": Decimal("185.0000"),
+    }
+
+    return mock_prices.get(ticker, Decimal("100.0000"))
 
 
 def persist_snapshots(
