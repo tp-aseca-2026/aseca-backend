@@ -1,32 +1,18 @@
-import { Inject } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
-import type { Prisma } from '@prisma/client';
-import { COST_BASIS_POLICY } from './cost-basis-policy.token';
 import type { CostBasisPolicy } from './cost-basis-policy';
-
-export type TransactionWithStock = {
-  stockId: number;
-  quantity: number;
-  price: Prisma.Decimal;
-  type: TransactionType;
-  stock: {
-    ticker: string;
-    companyName: string | null;
-  };
-};
+import type { PositionLot } from './position-lot.type';
+import { TransactionWithStock } from '../../transactions/domain/transaction.entity';
 
 export class PortfolioPositionAccumulator {
   readonly stockId: number;
   readonly ticker: string;
   readonly companyName: string | null;
 
-  private quantity = 0;
-  private totalBuyCost = 0;
-  private totalBoughtQuantity = 0;
+  private readonly lots: PositionLot[] = [];
+  private realizedProfitLoss = 0;
 
   constructor(
     transaction: TransactionWithStock,
-    @Inject(COST_BASIS_POLICY)
     private readonly costBasisPolicy: CostBasisPolicy,
   ) {
     this.stockId = transaction.stockId;
@@ -36,44 +22,31 @@ export class PortfolioPositionAccumulator {
 
   apply(transaction: TransactionWithStock): void {
     if (transaction.type === TransactionType.BUY) {
-      this.applyBuy(transaction);
+      this.costBasisPolicy.applyBuy(this.lots, transaction);
       return;
     }
 
-    this.applySell(transaction);
+    const sellResult = this.costBasisPolicy.applySell(this.lots, transaction);
+    this.realizedProfitLoss += sellResult.realizedProfitLoss;
   }
 
   isActive(): boolean {
-    return this.quantity > 0;
+    return this.getQuantity() > 0;
   }
 
   getQuantity(): number {
-    return this.quantity;
+    return this.lots.reduce((total, lot) => total + lot.quantity, 0);
   }
 
   getAverageBuyPrice(): number {
-    return this.costBasisPolicy.calculateAverageBuyPrice(
-      this.totalBuyCost,
-      this.totalBoughtQuantity,
-    );
+    return this.costBasisPolicy.calculateAverageBuyPrice(this.lots);
   }
 
   getCostBasis(): number {
-    return this.costBasisPolicy.calculateCostBasis(
-      this.quantity,
-      this.getAverageBuyPrice(),
-    );
+    return this.costBasisPolicy.calculateCostBasis(this.lots);
   }
 
-  private applyBuy(transaction: TransactionWithStock): void {
-    const price = transaction.price.toNumber();
-
-    this.quantity += transaction.quantity;
-    this.totalBuyCost += transaction.quantity * price;
-    this.totalBoughtQuantity += transaction.quantity;
-  }
-
-  private applySell(transaction: TransactionWithStock): void {
-    this.quantity -= transaction.quantity;
+  getRealizedProfitLoss(): number {
+    return this.realizedProfitLoss;
   }
 }

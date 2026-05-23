@@ -10,4 +10,11 @@ export type Transaction = {
   executedAt: Date;
 };
 
+export type TransactionWithStock = Transaction & {
+  stock: {
+    ticker: string;
+    companyName: string | null;
+  };
+};
+
 export { TransactionType };

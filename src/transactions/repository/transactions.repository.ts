@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import type { Transaction } from '../domain/transaction.entity';
+import type {
+  Transaction,
+  TransactionWithStock,
+} from '../domain/transaction.entity';
 
 @Injectable()
 export class TransactionsRepository {
@@ -20,7 +23,7 @@ export class TransactionsRepository {
   async findByUserId(userId: number): Promise<Transaction[]> {
     return this.prisma.transaction.findMany({
       where: { userId },
-      orderBy: { executedAt: 'desc' },
+      orderBy: [{ executedAt: 'desc' }, { id: 'desc' }],
     });
   }
 
@@ -30,14 +33,15 @@ export class TransactionsRepository {
   ): Promise<Transaction[]> {
     return this.prisma.transaction.findMany({
       where: { userId, stockId },
+      orderBy: [{ executedAt: 'asc' }, { id: 'asc' }],
     });
   }
 
-  async findByUserIdWithStock(userId: number) {
+  async findByUserIdWithStock(userId: number): Promise<TransactionWithStock[]> {
     return this.prisma.transaction.findMany({
       where: { userId },
       include: { stock: true },
-      orderBy: { executedAt: 'asc' },
+      orderBy: [{ executedAt: 'asc' }, { id: 'asc' }],
     });
   }
 }
