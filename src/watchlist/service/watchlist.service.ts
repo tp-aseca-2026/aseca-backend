@@ -9,12 +9,14 @@ import type {
   WatchlistItemWithStock,
 } from '../domain/watchlist-item.entity';
 import { WatchlistRepository } from '../repository/watchlist.repository';
+import { EdgarService } from '../../edgar/service/edgar.service';
 
 @Injectable()
 export class WatchlistService {
   constructor(
     private readonly watchlistRepository: WatchlistRepository,
     private readonly stocksService: StocksService,
+    private readonly edgarService: EdgarService,
   ) {}
 
   async getWatchlist(userId: number): Promise<WatchlistItemWithStock[]> {
@@ -51,5 +53,25 @@ export class WatchlistService {
     }
 
     return this.watchlistRepository.deleteById(existing.id);
+  }
+
+  async getComparison(userId: number) {
+    const items = await this.watchlistRepository.findByUserId(userId);
+
+    return Promise.all(
+      items.map(async (item) => {
+        const metrics = await this.edgarService.getMetrics(item.stock.ticker);
+
+        return {
+          ticker: item.stock.ticker,
+          companyName: item.stock.companyName,
+          revenue: metrics.revenue,
+          netIncome: metrics.netIncome,
+          eps: metrics.eps,
+          totalAssets: metrics.totalAssets,
+          totalLiabilities: metrics.totalLiabilities,
+        };
+      }),
+    );
   }
 }

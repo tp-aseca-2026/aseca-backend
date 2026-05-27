@@ -6,5 +6,6 @@ import { EdgarService } from './service/edgar.service';
 @Module({
   controllers: [EdgarController],
   providers: [EdgarService, EdgarClient],
+  exports: [EdgarService],
 })
 export class EdgarModule {}
