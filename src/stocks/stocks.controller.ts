@@ -13,6 +13,11 @@ export class StocksController {
     return this.stocksService.create(dto);
   }
 
+  @Get()
+  async findAll() {
+    return this.stocksService.findAll();
+  }
+
   @Get(':ticker')
   async findByTicker(@Param('ticker') ticker: string) {
     return this.stocksService.findByTicker(ticker);

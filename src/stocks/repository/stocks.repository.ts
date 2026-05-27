@@ -17,4 +17,12 @@ export class StocksRepository {
   async findByTicker(ticker: string): Promise<Stock | null> {
     return this.prisma.stock.findUnique({ where: { ticker } });
   }
+
+  async findAll(): Promise<Stock[]> {
+    return this.prisma.stock.findMany({
+      orderBy: {
+        ticker: 'asc',
+      },
+    });
+  }
 }

@@ -45,4 +45,8 @@ export class StocksService {
   private normalizeTicker(ticker: string): string {
     return ticker.trim().toUpperCase();
   }
+
+  async findAll(): Promise<Stock[]> {
+    return this.stocksRepository.findAll();
+  }
 }
