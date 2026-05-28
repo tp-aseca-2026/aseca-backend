@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { StocksService } from '../../../src/stocks/service/stocks.service';
 import { WatchlistRepository } from '../../../src/watchlist/repository/watchlist.repository';
 import { WatchlistService } from '../../../src/watchlist/service/watchlist.service';
+import { EdgarService } from '../../../src/edgar/service/edgar.service';
 
 const makeStock = (overrides = {}) => ({
   id: 10,
@@ -32,6 +33,7 @@ describe('WatchlistService', () => {
   let watchlistService: WatchlistService;
   let watchlistRepository: jest.Mocked<WatchlistRepository>;
   let stocksService: jest.Mocked<StocksService>;
+  let edgarService: jest.Mocked<EdgarService>;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -52,12 +54,19 @@ describe('WatchlistService', () => {
             findByTicker: jest.fn(),
           },
         },
+        {
+          provide: EdgarService,
+          useValue: {
+            getMetrics: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     watchlistService = moduleRef.get(WatchlistService);
     watchlistRepository = moduleRef.get(WatchlistRepository);
     stocksService = moduleRef.get(StocksService);
+    edgarService = moduleRef.get(EdgarService);
   });
 
   describe('getWatchlist', () => {
@@ -177,6 +186,51 @@ describe('WatchlistService', () => {
         NotFoundException,
       );
       expect(watchlistRepository.deleteById.mock.calls).toHaveLength(0);
+    });
+  });
+
+  describe('getComparison', () => {
+    it('returns comparison metrics for watchlist stocks', async () => {
+      const items = [
+        makeWatchlistItemWithStock(),
+        makeWatchlistItemWithStock({
+          id: 2,
+          stockId: 11,
+          stock: makeStock({
+            id: 11,
+            ticker: 'MSFT',
+            companyName: 'Microsoft Corporation',
+          }),
+        }),
+      ];
+
+      const metrics = {
+        revenue: { val: 100 },
+        netIncome: { val: 50 },
+        eps: { val: 2 },
+        totalAssets: { val: 500 },
+        totalLiabilities: { val: 200 },
+      };
+
+      watchlistRepository.findByUserId.mockResolvedValue(items);
+      edgarService.getMetrics.mockResolvedValue(metrics);
+
+      const result = await watchlistService.getComparison(42);
+
+      expect(watchlistRepository.findByUserId.mock.calls).toEqual([[42]]);
+      expect(edgarService.getMetrics.mock.calls).toEqual([['AAPL'], ['MSFT']]);
+      expect(result).toEqual([
+        {
+          ticker: 'AAPL',
+          companyName: 'Apple Inc.',
+          ...metrics,
+        },
+        {
+          ticker: 'MSFT',
+          companyName: 'Microsoft Corporation',
+          ...metrics,
+        },
+      ]);
     });
   });
 });

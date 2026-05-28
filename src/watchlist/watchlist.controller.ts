@@ -28,6 +28,11 @@ export class WatchlistController {
     return this.watchlistService.getWatchlist(req.user.id);
   }
 
+  @Get('comparison')
+  getComparison(@Req() req: AuthenticatedRequest) {
+    return this.watchlistService.getComparison(req.user.id);
+  }
+
   @Post()
   add(@Req() req: AuthenticatedRequest, @Body() dto: AddWatchlistItemDto) {
     return this.watchlistService.add(req.user.id, dto.ticker);
