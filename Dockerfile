@@ -2,7 +2,7 @@ FROM node:22-alpine AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache python3 py3-pip \
+RUN apk add --no-cache python3 py3-pip tzdata \
   && python3 -m venv /opt/venv
 
 ENV PATH="/opt/venv/bin:${PATH}"

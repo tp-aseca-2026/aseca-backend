@@ -11,6 +11,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';
 import { JwtAuthGuard } from '../../../src/auth/infrastructure/jwt-auth.guard';
 import { PrismaService } from '../../../src/database/prisma.service';
+import { PriceSnapshotsService } from '../../../src/price-snapshots/service/price-snapshots.service';
 
 const TEST_USER_EMAIL = 'transactions-integration-test@example.com';
 
@@ -97,6 +98,7 @@ async function cleanTestData(prisma: PrismaService): Promise<void> {
 describe('Transactions (integration)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let priceSnapshotsService: PriceSnapshotsService;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -117,6 +119,7 @@ describe('Transactions (integration)', () => {
     await app.init();
 
     prisma = moduleRef.get(PrismaService);
+    priceSnapshotsService = moduleRef.get(PriceSnapshotsService);
 
     const stale = await prisma.user.findMany({
       where: { email: TEST_USER_EMAIL },
@@ -216,11 +219,57 @@ describe('Transactions (integration)', () => {
 
     it('returns 404 when no price snapshot exists for the stock', async () => {
       await prisma.stock.create({ data: { ticker: 'GOOG' } });
+      const runUpdateSpy = jest
+        .spyOn(priceSnapshotsService, 'runUpdate')
+        .mockResolvedValue({
+          processed: 1,
+          saved: 0,
+          failed: [{ ticker: 'GOOG', error: 'No price returned' }],
+          updatedAt: '2026-05-28T12:00:00.000Z',
+        });
 
-      await request(app.getHttpServer())
-        .post('/transactions/buy')
-        .send({ ticker: 'GOOG', quantity: 1 })
-        .expect(404);
+      try {
+        await request(app.getHttpServer())
+          .post('/transactions/buy')
+          .send({ ticker: 'GOOG', quantity: 1 })
+          .expect(404);
+
+        expect(runUpdateSpy).toHaveBeenCalledWith(['GOOG']);
+      } finally {
+        runUpdateSpy.mockRestore();
+      }
+    });
+
+    it('updates a missing price snapshot before buying', async () => {
+      const stock = await prisma.stock.create({ data: { ticker: 'GOOG' } });
+      const runUpdateSpy = jest
+        .spyOn(priceSnapshotsService, 'runUpdate')
+        .mockImplementation(async (tickers?: string[]) => {
+          await prisma.priceSnapshot.create({
+            data: { stockId: stock.id, price: 125.75 },
+          });
+
+          return {
+            processed: tickers?.length ?? 0,
+            saved: 1,
+            failed: [],
+            updatedAt: '2026-05-28T12:00:00.000Z',
+          };
+        });
+
+      try {
+        const res = await request(app.getHttpServer())
+          .post('/transactions/buy')
+          .send({ ticker: 'GOOG', quantity: 1 })
+          .expect(201);
+
+        const body = res.body as TransactionResponse;
+
+        expect(Number(body.price)).toBeCloseTo(125.75);
+        expect(runUpdateSpy).toHaveBeenCalledWith(['GOOG']);
+      } finally {
+        runUpdateSpy.mockRestore();
+      }
     });
 
     it('returns 400 when quantity is zero', async () => {
