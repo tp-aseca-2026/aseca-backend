@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PriceSnapshotsService } from '../../price-snapshots/service/price-snapshots.service';
 import { CurrentPriceProvider } from './current-price-provider';
 
@@ -9,6 +9,20 @@ export class PriceSnapshotCurrentPriceProvider extends CurrentPriceProvider {
   }
 
   async getCurrentPrice(ticker: string): Promise<number> {
+    try {
+      return await this.getPersistedCurrentPrice(ticker);
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) {
+        throw error;
+      }
+    }
+
+    await this.priceSnapshotsService.runUpdate([ticker]);
+
+    return this.getPersistedCurrentPrice(ticker);
+  }
+
+  private async getPersistedCurrentPrice(ticker: string): Promise<number> {
     const snapshot =
       await this.priceSnapshotsService.getLatestSnapshotByTicker(ticker);
     return snapshot.price.toNumber();

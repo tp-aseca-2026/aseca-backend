@@ -138,37 +138,26 @@ def fetch_prices(tickers: Sequence[str]) -> Tuple[Dict[str, Decimal], List[Dict[
     if not tickers:
         return {}, []
 
-    prices: Dict[str, Decimal] = {}
-    failures: List[Dict[str, str]] = []
-
     try:
         data = yf.download(
             list(tickers),
-            period="1d",
+            period="5d",
             progress=False,
             threads=True,
             timeout=20,
         )
 
-        if len(tickers) == 1:
-            ticker = tickers[0]
-            price = extract_single_ticker_price(data, ticker)
-            if price is not None:
-                prices[ticker] = price
-            return prices, failures
+        prices = extract_download_prices(data, tickers)
+        missing_tickers = [ticker for ticker in tickers if ticker not in prices]
 
-        close_prices = data.get("Close")
-        if close_prices is None:
-            return prices, failures
+        if not missing_tickers:
+            return prices, []
 
-        for ticker in tickers:
-            try:
-                value = close_prices[ticker].dropna().iloc[-1]
-                price = normalize_price(value)
-                if price is not None:
-                    prices[ticker] = price
-            except Exception as error:
-                failures.append({"ticker": ticker, "error": str(error)})
+        fallback_prices, failures = fetch_prices_one_by_one(
+            missing_tickers,
+            "No close price returned by Yahoo Finance download",
+        )
+        prices.update(fallback_prices)
 
         return prices, failures
     except Exception as error:
@@ -183,13 +172,18 @@ def fetch_prices_one_by_one(
 
     for ticker in tickers:
         try:
-            raw_price = yf.Ticker(ticker).fast_info.get("lastPrice")
+            yahoo_ticker = yf.Ticker(ticker)
+            raw_price = yahoo_ticker.fast_info.get("lastPrice")
             price = normalize_price(raw_price)
+
+            if price is None:
+                price = fetch_recent_history_price(yahoo_ticker)
+
             if price is None:
                 failures.append(
                     {
                         "ticker": ticker,
-                        "error": f"No lastPrice returned. Batch error: {batch_error}",
+                        "error": f"No market price returned. Batch error: {batch_error}",
                     }
                 )
             else:
@@ -200,20 +194,49 @@ def fetch_prices_one_by_one(
     return prices, failures
 
 
-def extract_single_ticker_price(data, ticker: str) -> Optional[Decimal]:
-    try:
-        close_prices = data.get("Close")
-        if close_prices is None:
+def extract_download_prices(data, tickers: Sequence[str]) -> Dict[str, Decimal]:
+    prices: Dict[str, Decimal] = {}
+    close_prices = data.get("Close")
+
+    if close_prices is None:
+        return prices
+
+    for ticker in tickers:
+        price = extract_download_price(close_prices, ticker)
+
+        if price is not None:
+            prices[ticker] = price
+
+    return prices
+
+
+def extract_download_price(close_prices, ticker: str) -> Optional[Decimal]:
+    if hasattr(close_prices, "columns"):
+        if ticker not in close_prices.columns:
             return None
 
-        if hasattr(close_prices, "columns") and ticker in close_prices.columns:
-            value = close_prices[ticker].dropna().iloc[-1]
-        else:
-            value = close_prices.dropna().iloc[-1]
+        return normalize_last_series_price(close_prices[ticker])
 
-        return normalize_price(value)
-    except Exception:
+    return normalize_last_series_price(close_prices)
+
+
+def fetch_recent_history_price(yahoo_ticker) -> Optional[Decimal]:
+    history = yahoo_ticker.history(period="5d")
+    close_prices = history.get("Close")
+
+    if close_prices is None:
         return None
+
+    return normalize_last_series_price(close_prices)
+
+
+def normalize_last_series_price(series) -> Optional[Decimal]:
+    values = series.dropna()
+
+    if values.empty:
+        return None
+
+    return normalize_price(values.iloc[-1])
 
 
 def normalize_price(value) -> Optional[Decimal]:
