@@ -51,17 +51,36 @@ export type CompanyFactsRaw = {
   };
 };
 
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
+
+type CacheEntry<T> = { value: T; expiresAt: number };
+
 @Injectable()
 export class EdgarClient {
   private readonly userAgent: string;
   private readonly baseDataUrl = 'https://data.sec.gov';
   private readonly baseSecUrl = 'https://www.sec.gov';
+  private readonly cache = new Map<string, CacheEntry<unknown>>();
 
   constructor(private readonly configService: ConfigService) {
     this.userAgent = this.configService.get<string>(
       'SEC_USER_AGENT',
       'ASECA Portfolio Tracker contact@example.com',
     );
+  }
+
+  private getCached<T>(key: string): T | null {
+    const entry = this.cache.get(key) as CacheEntry<T> | undefined;
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setCached<T>(key: string, value: T): void {
+    this.cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
   }
 
   private async get<T>(url: string): Promise<T> {
@@ -77,18 +96,31 @@ export class EdgarClient {
   }
 
   async fetchCompanyTickers(): Promise<CompanyTickersRaw> {
-    return this.get<CompanyTickersRaw>(
+    const cached = this.getCached<CompanyTickersRaw>('company_tickers');
+    if (cached) return cached;
+    const result = await this.get<CompanyTickersRaw>(
       `${this.baseSecUrl}/files/company_tickers.json`,
     );
+    this.setCached('company_tickers', result);
+    return result;
   }
 
   async fetchSubmissions(cik: string): Promise<SubmissionsRaw> {
-    return this.get<SubmissionsRaw>(
+    const key = `submissions:${cik}`;
+    const cached = this.getCached<SubmissionsRaw>(key);
+    if (cached) return cached;
+    const result = await this.get<SubmissionsRaw>(
       `${this.baseDataUrl}/submissions/CIK${cik}.json`,
     );
+    this.setCached(key, result);
+    return result;
   }
 
   async fetchCompanyFacts(cik: string): Promise<CompanyFactsRaw> {
+    const key = `facts:${cik}`;
+    const cached = this.getCached<CompanyFactsRaw>(key);
+    if (cached) return cached;
+
     const url = `${this.baseDataUrl}/api/xbrl/companyfacts/CIK${cik}.json`;
     const response = await fetch(url, {
       headers: { 'User-Agent': this.userAgent },
@@ -106,6 +138,8 @@ export class EdgarClient {
       );
     }
 
-    return response.json() as Promise<CompanyFactsRaw>;
+    const result = (await response.json()) as CompanyFactsRaw;
+    this.setCached(key, result);
+    return result;
   }
 }
