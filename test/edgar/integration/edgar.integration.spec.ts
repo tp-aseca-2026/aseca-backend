@@ -1,8 +1,9 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { TestingModule, Test } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';
+import { EdgarClient } from '../../../src/edgar/infrastructure/edgar.client';
 
 type FetchInput = Parameters<typeof fetch>[0];
 
@@ -300,10 +301,11 @@ const mockFetchForTicker =
 
 describe('EDGAR (integration)', () => {
   let app: INestApplication<App>;
+  let moduleRef: TestingModule;
   let fetchSpy: jest.SpiedFunction<typeof fetch>;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
+    moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
@@ -328,6 +330,7 @@ describe('EDGAR (integration)', () => {
 
   afterEach(() => {
     fetchSpy.mockRestore();
+    moduleRef.get(EdgarClient).clearCache();
   });
 
   describe('GET /edgar/companies/search', () => {

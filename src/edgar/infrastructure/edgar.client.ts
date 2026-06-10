@@ -73,6 +73,10 @@ export class EdgarClient {
     );
   }
 
+  clearCache(): void {
+    this.cache.clear();
+  }
+
   private getCached<T>(key: string): T | null {
     const entry = this.cache.get(key) as CacheEntry<T> | undefined;
     if (!entry) return null;
