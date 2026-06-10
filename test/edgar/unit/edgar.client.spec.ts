@@ -37,6 +37,7 @@ describe('EdgarClient', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     fetchSpy.mockRestore();
   });
 
@@ -153,6 +154,33 @@ describe('EdgarClient', () => {
       await expect(
         client.fetchCompanyFacts('0000320193'),
       ).rejects.toBeInstanceOf(BadGatewayException);
+    });
+  });
+
+  describe('rate limit', () => {
+    it('waits at least 100ms before starting the next SEC request', async () => {
+      jest.useFakeTimers();
+      fetchSpy.mockResolvedValue(
+        mockFetchResponse({
+          ok: true,
+          json: jest.fn().mockResolvedValue({}),
+        }),
+      );
+
+      const firstRequest = client.fetchCompanyTickers();
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      const secondRequest = client.fetchSubmissions('0000320193');
+      await jest.advanceTimersByTimeAsync(99);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      await jest.advanceTimersByTimeAsync(1);
+      await Promise.all([firstRequest, secondRequest]);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
   });
 });
