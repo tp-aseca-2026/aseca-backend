@@ -4,9 +4,6 @@ Locust tests — escenarios de load y stress.
 Ambos escenarios ejecutan el mismo ciclo completo por usuario virtual:
   BUYING → HOLDING (GET /portfolio + GET /edgar/companies/search) → SELLING → BUYING
 
-Cada VU crea su propia cuenta para aislar el estado de portfolio.
-La caché en memoria del módulo EDGAR absorbe las consultas repetidas bajo alta concurrencia.
-
 Correr solo load test:
     locust -f locust/locustfile.py LoadUser --users 50 --spawn-rate 5 --run-time 5m
 
@@ -21,40 +18,15 @@ import os
 import random
 import uuid
 
-import requests
-from locust import HttpUser, between, events, task
+from locust import HttpUser, between, task
 
 BASE_URL = os.getenv("BASE_URL", "http://localhost:3000")
 TICKERS = os.getenv("TICKERS", "AAPL,MSFT,GOOGL,AMZN,TSLA").split(",")
 EDGAR_QUERIES = ["Apple", "Microsoft", "Google", "Amazon", "Tesla"]
 
-SEED_EMAIL = "seed@locust.test"
-SEED_PASSWORD = "Seed123!"
-
 BUYING = "BUYING"
 HOLDING = "HOLDING"
 SELLING = "SELLING"
-
-
-@events.test_start.add_listener
-def seed_price_snapshots(environment, **kwargs):
-    requests.post(f"{BASE_URL}/auth/register", json={"email": SEED_EMAIL, "password": SEED_PASSWORD})
-
-    resp = requests.post(f"{BASE_URL}/auth/login", json={"email": SEED_EMAIL, "password": SEED_PASSWORD})
-    if not resp.ok:
-        print(f"[seed] Login failed: {resp.status_code} — {resp.text}")
-        return
-
-    token = resp.json().get("accessToken")
-    resp = requests.post(
-        f"{BASE_URL}/price-snapshots/update",
-        json={"tickers": TICKERS},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    if resp.ok:
-        print(f"[seed] Price snapshots: {resp.json()}")
-    else:
-        print(f"[seed] Price snapshot update failed: {resp.status_code} — {resp.text}")
 
 
 class BasePortfolioUser(HttpUser):
@@ -94,6 +66,15 @@ class BasePortfolioUser(HttpUser):
         ) as resp:
             if resp.status_code == 409:
                 resp.success()
+
+        with self.client.post(
+            "/price-snapshots/update",
+            json={"tickers": [self._ticker]},
+            catch_response=True,
+            name="POST /price-snapshots/update [setup]",
+        ) as resp:
+            if not resp.ok:
+                resp.failure(f"Price snapshot update failed: {resp.status_code} — {resp.text}")
 
     @task
     def trade_cycle(self):
