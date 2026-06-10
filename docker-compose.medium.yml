@@ -1,0 +1,54 @@
+services:
+  api:
+    build:
+      context: .
+      target: dev
+    container_name: aseca-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://aseca_user:aseca_password@postgres:5432/aseca_db
+      JWT_SECRET: dev-secret
+      JWT_EXPIRES_IN: 1d
+      SEC_USER_AGENT: ASECA Portfolio Tracker dev@example.com
+      PRICE_SNAPSHOT_PYTHON_COMMAND: python3
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - aseca_node_modules:/app/node_modules
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:dev"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: aseca-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aseca_user
+      POSTGRES_PASSWORD: aseca_password
+      POSTGRES_DB: aseca_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - aseca_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aseca_user -d aseca_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+
+volumes:
+  aseca_postgres_data:
+  aseca_node_modules:
