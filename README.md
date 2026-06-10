@@ -26,7 +26,7 @@ El `docker-compose.yml` levanta:
 docker compose up --build
 ```
 
-Durante el arranque de la API se ejecuta:
+El servicio `api` usa el target `dev` del `Dockerfile`. Durante el arranque se ejecuta:
 
 ```bash
 npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npm run start:dev
