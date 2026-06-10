@@ -258,4 +258,79 @@ describe('EdgarClient', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('in-memory cache', () => {
+    const successResponse = (data: unknown) =>
+      mockFetchResponse({
+        ok: true,
+        json: jest.fn().mockResolvedValue(data),
+      });
+
+    it('returns cached company tickers without calling fetch again', async () => {
+      fetchSpy.mockResolvedValue(
+        successResponse({
+          '0': { cik_str: 1, ticker: 'AAPL', title: 'Apple' },
+        }),
+      );
+
+      await client.fetchCompanyTickers();
+      await client.fetchCompanyTickers();
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns cached submissions without calling fetch again', async () => {
+      fetchSpy.mockResolvedValue(
+        successResponse({
+          cik: '0000320193',
+          name: 'Apple',
+          tickers: [],
+          filings: { recent: {} },
+        }),
+      );
+
+      await client.fetchSubmissions('0000320193');
+      await client.fetchSubmissions('0000320193');
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns cached company facts without calling fetch again', async () => {
+      fetchSpy.mockResolvedValue(
+        successResponse({ cik: 320193, entityName: 'Apple', facts: {} }),
+      );
+
+      await client.fetchCompanyFacts('0000320193');
+      await client.fetchCompanyFacts('0000320193');
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('fetches again after cache expires', async () => {
+      jest.useFakeTimers();
+      fetchSpy.mockResolvedValue(
+        successResponse({
+          '0': { cik_str: 1, ticker: 'AAPL', title: 'Apple' },
+        }),
+      );
+
+      await client.fetchCompanyTickers();
+      jest.advanceTimersByTime(61 * 60 * 1000); // advance past 1 hour TTL
+      await client.fetchCompanyTickers();
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      jest.useRealTimers();
+    });
+
+    it('fetches different CIKs independently', async () => {
+      fetchSpy.mockResolvedValue(
+        successResponse({ cik: 0, entityName: 'X', facts: {} }),
+      );
+
+      await client.fetchCompanyFacts('0000000001');
+      await client.fetchCompanyFacts('0000000002');
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+  });
 });
