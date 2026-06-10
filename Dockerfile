@@ -2,13 +2,15 @@ FROM node:22-alpine AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache python3 py3-pip tzdata \
+RUN apk add --no-cache python3 py3-pip tzdata libpq \
   && python3 -m venv /opt/venv
 
 ENV PATH="/opt/venv/bin:${PATH}"
 
 COPY scripts/requirements.txt ./scripts/requirements.txt
-RUN pip install --no-cache-dir -r scripts/requirements.txt
+RUN apk add --no-cache --virtual .python-build-deps postgresql-dev gcc musl-dev python3-dev \
+  && pip install --no-cache-dir -r scripts/requirements.txt \
+  && apk del .python-build-deps
 
 COPY package*.json ./
 RUN npm ci
@@ -19,7 +21,7 @@ EXPOSE 3000
 
 FROM base AS dev
 
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npm run start:dev"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npm run start:dev"]
 
 FROM base AS production
 
