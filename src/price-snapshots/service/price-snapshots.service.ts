@@ -13,6 +13,13 @@ export type PriceSnapshotUpdateResult = {
   processed: number;
   saved: number;
   failed: { ticker: string; error: string }[];
+  reused: {
+    ticker: string;
+    stockId: number;
+    price: string;
+    source: string;
+    fetchedAt: string;
+  }[];
   updatedAt: string | null;
 };
 
