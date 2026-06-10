@@ -26,28 +26,36 @@ def main() -> int:
             stocks = load_target_stocks(connection, args.tickers)
 
             if not stocks:
-                print_summary(processed=0, saved=0, failed=[], updated_at=None)
+                print_summary(
+                    processed=0, saved=0, failed=[], reused=[], updated_at=None
+                )
                 return 0
 
             prices, failures = fetch_prices([stock["ticker"] for stock in stocks])
 
-            if should_use_mock_price_fallback():
-                prices = apply_mock_price_fallback(stocks, prices)
-
             saved = persist_snapshots(connection, stocks, prices)
             updated_at = datetime.now(timezone.utc).isoformat()
+            reused = load_persisted_price_fallbacks(connection, stocks, prices)
+            reused_tickers = {fallback["ticker"] for fallback in reused}
 
             missing_price_failures = [
                 {"ticker": stock["ticker"], "error": "No price returned by Yahoo Finance"}
                 for stock in stocks
                 if stock["ticker"] not in prices
+                and stock["ticker"] not in reused_tickers
                 and not any(failure["ticker"] == stock["ticker"] for failure in failures)
+            ]
+            unrecovered_failures = [
+                failure
+                for failure in failures
+                if failure["ticker"] not in reused_tickers
             ]
 
             print_summary(
                 processed=len(stocks),
                 saved=saved,
-                failed=[*failures, *missing_price_failures],
+                failed=[*unrecovered_failures, *missing_price_failures],
+                reused=reused,
                 updated_at=updated_at,
             )
             return 0
@@ -58,6 +66,7 @@ def main() -> int:
                     "processed": 0,
                     "saved": 0,
                     "failed": [{"ticker": "*", "error": str(error)}],
+                    "reused": [],
                     "updatedAt": None,
                 }
             ),
@@ -134,7 +143,9 @@ def load_target_stocks(connection, tickers: Optional[Sequence[str]]) -> List[Dic
         return list(cursor.fetchall())
 
 
-def fetch_prices(tickers: Sequence[str]) -> Tuple[Dict[str, Decimal], List[Dict[str, str]]]:
+def fetch_prices(
+    tickers: Sequence[str],
+) -> Tuple[Dict[str, Decimal], List[Dict[str, str]]]:
     if not tickers:
         return {}, []
 
@@ -249,35 +260,6 @@ def normalize_price(value) -> Optional[Decimal]:
 
     return Decimal(str(numeric_value)).quantize(PRICE_SCALE, rounding=ROUND_HALF_UP)
 
-def should_use_mock_price_fallback() -> bool:
-    return os.getenv("USE_MOCK_PRICE_FALLBACK", "false").lower() == "true"
-
-
-def apply_mock_price_fallback(
-    stocks: Sequence[Dict], prices: Dict[str, Decimal]
-) -> Dict[str, Decimal]:
-    fallback_prices = dict(prices)
-
-    for stock in stocks:
-        ticker = stock["ticker"]
-
-        if ticker not in fallback_prices:
-            fallback_prices[ticker] = get_mock_price_for_ticker(ticker)
-
-    return fallback_prices
-
-
-def get_mock_price_for_ticker(ticker: str) -> Decimal:
-    mock_prices = {
-        "AAPL": Decimal("180.0000"),
-        "MSFT": Decimal("420.0000"),
-        "TSLA": Decimal("250.0000"),
-        "GOOGL": Decimal("170.0000"),
-        "AMZN": Decimal("185.0000"),
-    }
-
-    return mock_prices.get(ticker, Decimal("100.0000"))
-
 
 def persist_snapshots(
     connection, stocks: Sequence[Dict], prices: Dict[str, Decimal]
@@ -303,10 +285,46 @@ def persist_snapshots(
     return saved
 
 
+def load_persisted_price_fallbacks(
+    connection, stocks: Sequence[Dict], fresh_prices: Dict[str, Decimal]
+) -> List[Dict]:
+    missing_stocks = [stock for stock in stocks if stock["ticker"] not in fresh_prices]
+
+    if not missing_stocks:
+        return []
+
+    stock_by_id = {stock["id"]: stock for stock in missing_stocks}
+
+    with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            '''
+            SELECT DISTINCT ON ("stockId") "stockId", price, source, "fetchedAt"
+            FROM "PriceSnapshot"
+            WHERE "stockId" = ANY(%s)
+            ORDER BY "stockId", "fetchedAt" DESC
+            ''',
+            (list(stock_by_id.keys()),),
+        )
+
+        snapshots = cursor.fetchall()
+
+    return [
+        {
+            "ticker": stock_by_id[snapshot["stockId"]]["ticker"],
+            "stockId": snapshot["stockId"],
+            "price": str(snapshot["price"]),
+            "source": snapshot["source"],
+            "fetchedAt": snapshot["fetchedAt"].isoformat(),
+        }
+        for snapshot in snapshots
+    ]
+
+
 def print_summary(
     processed: int,
     saved: int,
     failed: Sequence[Dict[str, str]],
+    reused: Sequence[Dict],
     updated_at: Optional[str],
 ) -> None:
     print(
@@ -315,6 +333,7 @@ def print_summary(
                 "processed": processed,
                 "saved": saved,
                 "failed": list(failed),
+                "reused": list(reused),
                 "updatedAt": updated_at,
             }
         )

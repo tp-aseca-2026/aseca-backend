@@ -225,6 +225,7 @@ describe('Transactions (integration)', () => {
           processed: 1,
           saved: 0,
           failed: [{ ticker: 'GOOG', error: 'No price returned' }],
+          reused: [],
           updatedAt: '2026-05-28T12:00:00.000Z',
         });
 
@@ -253,6 +254,7 @@ describe('Transactions (integration)', () => {
             processed: tickers?.length ?? 0,
             saved: 1,
             failed: [],
+            reused: [],
             updatedAt: '2026-05-28T12:00:00.000Z',
           };
         });

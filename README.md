@@ -124,7 +124,7 @@ Con tickers específicos:
 python3 scripts/update_price_snapshots.py --tickers AAPL,MSFT
 ```
 
-El batch consulta por defecto tickers presentes en portfolios o watchlists. Si falla un ticker, informa el error en la respuesta y continúa con el resto.
+El batch consulta por defecto tickers presentes en portfolios o watchlists. Si falla un ticker y existe un precio anterior persistido, lo informa en `reused` y no inserta un snapshot nuevo. Si no hay precio persistido para reutilizar, informa el error en `failed` y continúa con el resto.
 
 ## SEC EDGAR
 
