@@ -91,10 +91,18 @@ describe('POST /transactions/buy (integration)', () => {
   it('uses the latest price snapshot as the transaction price', async () => {
     const stock = await prisma.stock.create({ data: { ticker: 'TSLA' } });
     await prisma.priceSnapshot.create({
-      data: { stockId: stock.id, price: 100 },
+      data: {
+        stockId: stock.id,
+        price: 100,
+        fetchedAt: new Date('2024-01-01T10:00:00Z'),
+      },
     });
     await prisma.priceSnapshot.create({
-      data: { stockId: stock.id, price: 250.5 },
+      data: {
+        stockId: stock.id,
+        price: 250.5,
+        fetchedAt: new Date('2024-06-01T10:00:00Z'),
+      },
     });
 
     const res = await request(app.getHttpServer())
