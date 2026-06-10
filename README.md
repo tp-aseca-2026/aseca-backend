@@ -182,22 +182,54 @@ Watchlist:
 
 ## Decisiones Técnicas
 
+### Arquitectura Modular
+
+El backend está organizado por módulos de dominio de NestJS: `auth`, `users`, `stocks`, `transactions`, `portfolio`, `price-snapshots`, `edgar` y `watchlist`.
+
+Cada módulo separa controllers para la capa HTTP, services para reglas de negocio, repositories para acceso a datos y DTOs para validación de entrada. Esto mantiene responsabilidades acotadas y facilita probar los flujos principales del sistema.
+
+### Persistencia Con Prisma Y PostgreSQL
+
+PostgreSQL es la base principal del sistema y Prisma se usa como ORM y herramienta de migraciones versionadas. El schema modela usuarios, acciones, transacciones, snapshots de precios y watchlist.
+
+Las migraciones viven en `prisma/migrations` y la seed local vive en `prisma/seed.ts`. La seed usa `upsert`, por lo que se puede ejecutar varias veces sin duplicar stocks.
+
+### Autenticación Y Autorización
+
+La API usa registro/login con email y password. Las passwords se almacenan hasheadas con bcrypt y el login emite un JWT Bearer token.
+
+Las rutas privadas usan `JwtAuthGuard`. Los servicios operan con el `userId` autenticado para aislar transacciones, portfolio y watchlist por usuario.
+
 ### Portfolio Derivado Desde Transacciones
 
-Las transacciones son el ledger fuente de verdad. El portfolio actual se calcula dinámicamente a partir de compras y ventas, evitando duplicar estado en una tabla de balance que pueda quedar inconsistente.
+Las transacciones son el ledger fuente de verdad. El portfolio actual, las posiciones abiertas y el profit/loss se calculan dinámicamente a partir de compras, ventas y últimos precios persistidos.
+
+Esta decisión evita duplicar estado en una tabla de balance que pueda quedar inconsistente con el historial de operaciones.
 
 ### Cierre De Posición
 
-Una posición se cierra vendiendo la totalidad de las acciones disponibles. Las posiciones con cantidad final cero no se muestran en `GET /portfolio`. No existe un borrado administrativo separado de posiciones.
+Una posición se cierra vendiendo la totalidad de las acciones disponibles. Las posiciones con cantidad final cero no se muestran en `GET /portfolio`.
+
+No existe un borrado administrativo separado de posiciones, porque el historial de transacciones conserva la trazabilidad de lo ocurrido.
 
 ### Fecha De Operación
 
 Cada transacción registra `executedAt` automáticamente en la base de datos. El historial de transacciones expone esa fecha para compras y ventas.
 
-### Precios Persistidos
+### Integraciones Externas
 
-La valorización normal del portfolio usa el último precio persistido en `PriceSnapshot`. La actualización de precios se resuelve mediante el batch de Yahoo Finance.
+SEC EDGAR se usa como fuente oficial de datos financieros. Yahoo Finance se usa para actualizar precios mediante un proceso batch. La API de portfolio trabaja con datos persistidos para mantener respuestas consistentes y evitar depender de consultas externas durante la valorización normal.
+
+### Testing
+
+El backend incluye tests unitarios para servicios y reglas de dominio, además de tests de integración para endpoints principales, persistencia, autenticación y flujos de portfolio/watchlist/precios.
+
+Los tests E2E con Cypress/Appium pertenecen al repositorio frontend/mobile, que consume esta API como backend real.
+
+### Entorno Local
+
+La entrega prioriza reproducibilidad local. `docker-compose.yml` levanta API + PostgreSQL, aplica migraciones y ejecuta seed automáticamente. Esto permite correr la demo y validar el backend sin depender de infraestructura externa propia.
 
 ### Alcance De Este Repositorio
 
-Este repositorio contiene el backend y su infraestructura local mínima. Los tests E2E con Cypress/Appium pertenecen al repo frontend/mobile. Este `docker-compose.yml` levanta backend y base de datos local; no levanta el ecosistema completo web/mobile.
+Este repositorio contiene el backend y su infraestructura local mínima. Los tests E2E con Cypress/Appium pertenecen al repo aseca-frontend. Este `docker-compose.yml` levanta backend y base de datos local; no levanta el ecosistema completo web/mobile.
