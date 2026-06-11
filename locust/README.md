@@ -149,7 +149,7 @@ Los resultados completos de las corridas de stress, incluyendo percentiles, RPS,
 ## Conclusiones
 
 - El flujo principal (buy, sell, portfolio, edgar) tuvo muy buen rendimiento en el load test: 0% de error rate con 50 usuarios y latencias p95 por debajo de 60ms en los endpoints principales.
-- El principal cuello de botella identificado es `POST /price-snapshots/update`: p95 de ~6.5 segundos, ya que depende de una llamada externa a Yahoo Finance por cada usuario virtual en su `on_start`. Este tiempo no impacta el ciclo de trading una vez que el setup terminó. Mejoró respecto de corridas anteriores (~19 segundos).
+- El principal cuello de botella identificado es `POST /price-snapshots/update`: p95 de ~6.5 segundos, ya que depende de una llamada externa a Yahoo Finance por cada usuario virtual en su `on_start`. Este tiempo no impacta el ciclo de trading una vez que el setup terminó.
 - El punto de quiebre de **baseline y medium** está entre 1000 y 2000 usuarios: con 1000 mantienen 0% de error rate; con 2000 aparecen los primeros failures.
 - **Prod-like** se degrada severamente a partir de 500 usuarios por el cuello de botella del 1 CPU: las latencias de buy/sell superan los 19–25 segundos en p95.
 - **Low** aguanta 100 usuarios con 0% de error rate pero se vuelve inutilizable con 200: error rate 2% y latencias de 10–16 segundos en p95.
