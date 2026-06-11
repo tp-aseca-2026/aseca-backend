@@ -179,6 +179,7 @@ describe('EdgarService', () => {
             fetchCompanyTickers: jest.fn(),
             fetchSubmissions: jest.fn(),
             fetchCompanyFacts: jest.fn(),
+            fetchFullTextSearch: jest.fn(),
           },
         },
       ],
@@ -186,6 +187,11 @@ describe('EdgarService', () => {
 
     service = moduleRef.get(EdgarService);
     edgarClient = moduleRef.get(EdgarClient);
+    edgarClient.fetchFullTextSearch.mockResolvedValue({
+      hits: {
+        hits: [],
+      },
+    });
   });
 
   describe('searchCompanies', () => {

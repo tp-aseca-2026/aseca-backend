@@ -53,6 +53,19 @@ export type CompanyFactsRaw = {
   };
 };
 
+export type EdgarFullTextSearchRaw = {
+  hits?: {
+    hits?: Array<{
+      _source?: {
+        ciks?: string[];
+        display_names?: string[];
+        form?: string;
+        root_forms?: string[];
+      };
+    }>;
+  };
+};
+
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 type CacheEntry<T> = { value: T; expiresAt: number };
@@ -62,6 +75,7 @@ export class EdgarClient {
   private readonly userAgent: string;
   private readonly baseDataUrl = 'https://data.sec.gov';
   private readonly baseSecUrl = 'https://www.sec.gov';
+  private readonly baseFullTextSearchUrl = 'https://efts.sec.gov';
   private nextAllowedRequestAt = 0;
   private rateLimitQueue = Promise.resolve();
   private readonly cache = new Map<string, CacheEntry<unknown>>();
@@ -144,6 +158,21 @@ export class EdgarClient {
     }
 
     const result = (await response.json()) as CompanyFactsRaw;
+    this.setCached(key, result);
+    return result;
+  }
+
+  async fetchFullTextSearch(query: string): Promise<EdgarFullTextSearchRaw> {
+    const encodedQuery = encodeURIComponent(query.trim());
+    const key = `full_text_search:${encodedQuery}`;
+
+    const cached = this.getCached<EdgarFullTextSearchRaw>(key);
+    if (cached) return cached;
+
+    const result = await this.get<EdgarFullTextSearchRaw>(
+      `${this.baseFullTextSearchUrl}/LATEST/search-index?q=${encodedQuery}&forms=10-K`,
+    );
+
     this.setCached(key, result);
     return result;
   }
