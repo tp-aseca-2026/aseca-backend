@@ -322,4 +322,80 @@ describe('GET /portfolio (integration)', () => {
       lastPriceUpdatedAt: null,
     });
   });
+
+  it('returns a position with unrealized loss when latest stored price is below purchase price', async () => {
+    const stock = await prisma.stock.create({
+      data: {
+        ticker: 'NFLX',
+        companyName: 'Netflix Inc.',
+      },
+    });
+
+    await prisma.transaction.create({
+      data: {
+        userId: TEST_USER.id,
+        stockId: stock.id,
+        type: TransactionType.BUY,
+        quantity: 10,
+        price: 100,
+        executedAt: new Date('2026-05-20T09:00:00.000Z'),
+      },
+    });
+
+    const fetchedAt = new Date('2026-05-20T10:00:00.000Z');
+
+    await prisma.priceSnapshot.create({
+      data: {
+        stockId: stock.id,
+        price: 80,
+        fetchedAt,
+      },
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/portfolio')
+      .expect(200);
+
+    const body = bodyAs<PortfolioResponseBody>(res);
+
+    expect(body.positions).toHaveLength(1);
+
+    const position = body.positions[0];
+
+    if (position === undefined) {
+      throw new Error('Expected one portfolio position');
+    }
+
+    expect(position).toMatchObject({
+      stockId: stock.id,
+      ticker: 'NFLX',
+      companyName: 'Netflix Inc.',
+      quantity: 10,
+      averageBuyPrice: 100,
+      costBasis: 1000,
+      latestPrice: 80,
+      currentValue: 800,
+      unrealizedProfitLoss: -200,
+      unrealizedProfitLossPercentage: -20,
+      realizedProfitLoss: 0,
+      totalProfitLoss: -200,
+    });
+
+    expect(new Date(position.lastPriceUpdatedAt ?? '').toISOString()).toBe(
+      fetchedAt.toISOString(),
+    );
+
+    expect(body.summary).toMatchObject({
+      totalCostBasis: 1000,
+      currentValue: 800,
+      unrealizedProfitLoss: -200,
+      unrealizedProfitLossPercentage: -20,
+      realizedProfitLoss: 0,
+      totalProfitLoss: -200,
+    });
+
+    expect(new Date(body.summary.lastPriceUpdatedAt ?? '').toISOString()).toBe(
+      fetchedAt.toISOString(),
+    );
+  });
 });

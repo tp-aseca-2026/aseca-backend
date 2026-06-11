@@ -1,18 +1,19 @@
-US-003 — Registro e inicio de sesión en web
+US-001 — Registro de usuario en backend
 
 Descripción
-Implementar las pantallas web de registro e inicio de sesión.
+Implementar la API de registro de usuarios.
 
 User Story
-Como usuario, quiero registrarme e iniciar sesión desde la aplicación web para acceder a la plataforma desde el navegador.
+Como usuario, quiero poder registrarme con email y password para crear una cuenta personal en el sistema.
 
 
 Criterios de aceptación
-- Existe una pantalla web de registro.
-- Existe una pantalla web de login.
-- Los formularios validan los datos ingresados.
-- Se muestran mensajes de error ante credenciales inválidas o datos incorrectos.
-- La web consume la API real de autenticación.
-- Luego del login exitoso, el usuario accede a la aplicación.
+- El sistema permite registrar un usuario con email y password.
+- No se permiten emails duplicados.
+- La password se almacena de forma segura.
+- El sistema valida datos obligatorios.
+- Ante datos inválidos, se retorna un error claro.
+- El usuario queda disponible para autenticarse luego del registro.
+
 
 
