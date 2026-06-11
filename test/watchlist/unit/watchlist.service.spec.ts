@@ -29,6 +29,15 @@ const makeWatchlistItemWithStock = (overrides = {}) => ({
   ...overrides,
 });
 
+const makeMetricPoint = (val: number) => ({
+  val,
+  fy: 2024,
+  fp: 'FY',
+  end: '2024-12-31',
+  filed: '2025-02-01',
+  form: '10-K',
+});
+
 describe('WatchlistService', () => {
   let watchlistService: WatchlistService;
   let watchlistRepository: jest.Mocked<WatchlistRepository>;
@@ -205,11 +214,11 @@ describe('WatchlistService', () => {
       ];
 
       const metrics = {
-        revenue: { val: 100 },
-        netIncome: { val: 50 },
-        eps: { val: 2 },
-        totalAssets: { val: 500 },
-        totalLiabilities: { val: 200 },
+        revenue: makeMetricPoint(100),
+        netIncome: makeMetricPoint(50),
+        eps: makeMetricPoint(2),
+        totalAssets: makeMetricPoint(500),
+        totalLiabilities: makeMetricPoint(200),
       };
 
       watchlistRepository.findByUserId.mockResolvedValue(items);
