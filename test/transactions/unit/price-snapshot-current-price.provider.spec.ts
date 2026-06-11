@@ -56,6 +56,7 @@ describe('PriceSnapshotCurrentPriceProvider', () => {
       processed: 1,
       saved: 1,
       failed: [],
+      reused: [],
       updatedAt: '2026-05-28T12:01:00.000Z',
     });
 
