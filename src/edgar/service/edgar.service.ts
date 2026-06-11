@@ -9,6 +9,8 @@ import type {
 import {
   EdgarClient,
   type CompanyFactsRaw,
+  EdgarFullTextSearchRaw,
+  CompanyTickersRaw,
 } from '../infrastructure/edgar.client';
 
 type ConceptData = {
@@ -36,25 +38,21 @@ export class EdgarService {
   constructor(private readonly edgarClient: EdgarClient) {}
 
   async searchCompanies(query: string): Promise<EdgarCompany[]> {
-    const normalized = query.trim().toLowerCase();
-    const tickers = await this.edgarClient.fetchCompanyTickers();
+    const [fullTextResults, tickers] = await Promise.all([
+      this.edgarClient.fetchFullTextSearch(query),
+      this.edgarClient.fetchCompanyTickers(),
+    ]);
 
-    const results: EdgarCompany[] = [];
-    for (const entry of Object.values(tickers)) {
-      if (
-        entry.title.toLowerCase().includes(normalized) ||
-        entry.ticker.toLowerCase().includes(normalized)
-      ) {
-        results.push({
-          companyName: entry.title,
-          ticker: entry.ticker,
-          cik: this.normalizeCik(entry.cik_str),
-        });
-      }
-      if (results.length >= MAX_SEARCH_RESULTS) break;
+    const fullTextCompanies = this.extractCompaniesFromFullTextSearch(
+      fullTextResults,
+      tickers,
+    );
+
+    if (fullTextCompanies.length > 0) {
+      return fullTextCompanies.slice(0, MAX_SEARCH_RESULTS);
     }
 
-    return results;
+    return this.searchCompaniesFromTickerMap(query, tickers);
   }
 
   async getFilings(ticker: string): Promise<EdgarFiling[]> {
@@ -221,6 +219,79 @@ export class EdgarService {
     }
 
     return bestPoints;
+  }
+
+  private extractCompaniesFromFullTextSearch(
+    raw: EdgarFullTextSearchRaw,
+    tickers: CompanyTickersRaw,
+  ): EdgarCompany[] {
+    const tickerEntriesByCik = this.buildTickerEntriesByCik(tickers);
+    const results = new Map<string, EdgarCompany>();
+
+    for (const hit of raw.hits?.hits ?? []) {
+      const source = hit._source;
+      if (!source) continue;
+
+      for (const rawCik of source.ciks ?? []) {
+        const cik = this.normalizeCik(rawCik);
+        const tickerEntry = tickerEntriesByCik.get(cik);
+
+        if (!tickerEntry || results.has(cik)) continue;
+
+        results.set(cik, {
+          companyName: tickerEntry.title,
+          ticker: tickerEntry.ticker,
+          cik,
+        });
+
+        if (results.size >= MAX_SEARCH_RESULTS) {
+          return Array.from(results.values());
+        }
+      }
+    }
+
+    return Array.from(results.values());
+  }
+
+  private buildTickerEntriesByCik(
+    tickers: CompanyTickersRaw,
+  ): Map<string, { cik_str: number; ticker: string; title: string }> {
+    const entriesByCik = new Map<
+      string,
+      { cik_str: number; ticker: string; title: string }
+    >();
+
+    for (const entry of Object.values(tickers)) {
+      entriesByCik.set(this.normalizeCik(entry.cik_str), entry);
+    }
+
+    return entriesByCik;
+  }
+
+  private searchCompaniesFromTickerMap(
+    query: string,
+    tickers: CompanyTickersRaw,
+  ): EdgarCompany[] {
+    const normalized = query.trim().toLowerCase();
+
+    const results: EdgarCompany[] = [];
+
+    for (const entry of Object.values(tickers)) {
+      if (
+        entry.title.toLowerCase().includes(normalized) ||
+        entry.ticker.toLowerCase().includes(normalized)
+      ) {
+        results.push({
+          companyName: entry.title,
+          ticker: entry.ticker,
+          cik: this.normalizeCik(entry.cik_str),
+        });
+      }
+
+      if (results.length >= MAX_SEARCH_RESULTS) break;
+    }
+
+    return results;
   }
 
   private extractPoints(
