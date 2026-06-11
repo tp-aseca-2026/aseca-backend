@@ -363,4 +363,58 @@ describe('PortfolioService', () => {
       },
     });
   });
+
+  it('should calculate unrealized loss when latest price is below cost basis', async () => {
+    transactionsRepository.findByUserIdWithStock.mockResolvedValue([
+      {
+        id: 1,
+        userId: 1,
+        stockId: 8,
+        quantity: 10,
+        price: decimalMock(100),
+        type: TransactionType.BUY,
+        executedAt,
+        stock: {
+          ticker: 'NFLX',
+          companyName: 'Netflix Inc.',
+        },
+      },
+    ]);
+
+    priceSnapshotsRepository.findLatestByStockId.mockResolvedValue({
+      price: decimalMock(80),
+      fetchedAt,
+    });
+
+    const result = await service.getPortfolio(1);
+
+    expect(result).toEqual({
+      positions: [
+        {
+          stockId: 8,
+          ticker: 'NFLX',
+          companyName: 'Netflix Inc.',
+          quantity: 10,
+          averageBuyPrice: 100,
+          costBasis: 1000,
+          latestPrice: 80,
+          currentValue: 800,
+          unrealizedProfitLoss: -200,
+          unrealizedProfitLossPercentage: -20,
+          realizedProfitLoss: 0,
+          totalProfitLoss: -200,
+          lastPriceUpdatedAt: fetchedAt,
+        },
+      ],
+      summary: {
+        totalCostBasis: 1000,
+        currentValue: 800,
+        unrealizedProfitLoss: -200,
+        unrealizedProfitLossPercentage: -20,
+        realizedProfitLoss: 0,
+        totalProfitLoss: -200,
+        lastPriceUpdatedAt: fetchedAt,
+      },
+    });
+  });
 });
