@@ -10,8 +10,6 @@ Criterios de aceptación
 - El usuario puede comprar acciones válidas.
 - El usuario puede vender acciones que posea.
 - No se pueden vender más acciones de las disponibles.
-- El usuario puede modificar posiciones existentes.
-- El usuario puede eliminar posiciones.
 - Las operaciones impactan inmediatamente en el portfolio.
 - El usuario puede visualizar sus posiciones actuales.
 - El usuario puede consultar el historial de transacciones.
