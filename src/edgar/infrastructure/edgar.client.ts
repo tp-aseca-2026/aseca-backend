@@ -53,6 +53,28 @@ export type CompanyFactsRaw = {
   };
 };
 
+export type CompanyConceptRaw = {
+  cik: number;
+  taxonomy: string;
+  tag: string;
+  label: string;
+  description: string;
+  entityName: string;
+  units: Record<
+    string,
+    Array<{
+      end: string;
+      val: number;
+      accn: string;
+      fy: number;
+      fp: string;
+      form: string;
+      filed: string;
+      frame?: string;
+    }>
+  >;
+};
+
 export type EdgarFullTextSearchRaw = {
   hits?: {
     hits?: Array<{
@@ -158,6 +180,34 @@ export class EdgarClient {
     }
 
     const result = (await response.json()) as CompanyFactsRaw;
+    this.setCached(key, result);
+    return result;
+  }
+
+  async fetchCompanyConcept(
+    cik: string,
+    concept: string,
+  ): Promise<CompanyConceptRaw> {
+    const key = `concept:${cik}:${concept}`;
+    const cached = this.getCached<CompanyConceptRaw>(key);
+    if (cached) return cached;
+
+    const url = `${this.baseDataUrl}/api/xbrl/companyconcept/CIK${cik}/us-gaap/${concept}.json`;
+    const response = await this.fetchSec(url);
+
+    if (response.status === 404) {
+      throw new NotFoundException(
+        `No XBRL data for concept ${concept} and CIK ${cik}`,
+      );
+    }
+
+    if (!response.ok) {
+      throw new BadGatewayException(
+        `SEC EDGAR request failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const result = (await response.json()) as CompanyConceptRaw;
     this.setCached(key, result);
     return result;
   }

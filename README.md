@@ -130,9 +130,13 @@ El batch consulta por defecto tickers presentes en portfolios o watchlists. Si f
 
 La integración EDGAR consulta datos reales desde:
 
-- `https://www.sec.gov/files/company_tickers.json`
-- `https://data.sec.gov/submissions/CIK{cik}.json`
-- `https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json`
+- `https://efts.sec.gov/LATEST/search-index?q={query}&forms=10-K` — búsqueda full-text sobre filings 10-K
+- `https://www.sec.gov/files/company_tickers.json` — mapa de tickers y CIKs
+- `https://data.sec.gov/submissions/CIK{cik}.json` — historial de filings de una empresa
+- `https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json` — todos los datos XBRL de una empresa
+- `https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/us-gaap/{concept}.json` — datos de un concepto XBRL específico
+
+La búsqueda de empresas usa primero el full-text search de EDGAR; si no retorna resultados, hace fallback filtrando el mapa de tickers por nombre o símbolo. Las métricas financieras se obtienen con llamadas individuales por concepto (`companyconcept`).
 
 El cliente envía `SEC_USER_AGENT` en cada request y aplica rate limit interno de máximo 10 requests por segundo, espaciando las llamadas al menos 100 ms.
 

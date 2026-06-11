@@ -11,131 +11,119 @@ const APPLE_TICKERS = makeTickersResponse([
   { cik_str: 320193, ticker: 'AAPL', title: 'Apple Inc.' },
 ]);
 
-const makeCompanyFacts = (gaapOverrides: Record<string, unknown> = {}) => ({
-  cik: 320193,
-  entityName: 'Apple Inc.',
-  facts: {
-    'us-gaap': {
-      Revenues: {
-        label: 'Revenue',
-        units: {
-          USD: [
-            {
-              end: '2023-09-30',
-              val: 383285000000,
-              fy: 2023,
-              fp: 'FY',
-              form: '10-K',
-              filed: '2023-11-03',
-              accn: '0000320193-23-000001',
-            },
-            {
-              end: '2023-06-30',
-              val: 81797000000,
-              fy: 2023,
-              fp: 'Q3',
-              form: '10-Q',
-              filed: '2023-08-04',
-              accn: '0000320193-23-000002',
-            },
-            {
-              end: '2023-03-31',
-              val: 94836000000,
-              fy: 2023,
-              fp: 'Q2',
-              form: '10-Q',
-              filed: '2023-05-05',
-              accn: '0000320193-23-000003',
-            },
-            {
-              end: '2022-12-31',
-              val: 117154000000,
-              fy: 2023,
-              fp: 'Q1',
-              form: '10-Q',
-              filed: '2023-02-03',
-              accn: '0000320193-23-000004',
-            },
-          ],
+const APPLE_CONCEPTS: Record<string, { units: Record<string, unknown[]> }> = {
+  Revenues: {
+    units: {
+      USD: [
+        {
+          end: '2023-09-30',
+          val: 383285000000,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: '0000320193-23-000001',
         },
-      },
-      NetIncomeLoss: {
-        label: 'Net Income',
-        units: {
-          USD: [
-            {
-              end: '2023-09-30',
-              val: 96995000000,
-              fy: 2023,
-              fp: 'FY',
-              form: '10-K',
-              filed: '2023-11-03',
-              accn: '0000320193-23-000001',
-            },
-            {
-              end: '2023-06-30',
-              val: 19881000000,
-              fy: 2023,
-              fp: 'Q3',
-              form: '10-Q',
-              filed: '2023-08-04',
-              accn: '0000320193-23-000002',
-            },
-          ],
+        {
+          end: '2023-06-30',
+          val: 81797000000,
+          fy: 2023,
+          fp: 'Q3',
+          form: '10-Q',
+          filed: '2023-08-04',
+          accn: '0000320193-23-000002',
         },
-      },
-      EarningsPerShareDiluted: {
-        label: 'EPS Diluted',
-        units: {
-          'USD/shares': [
-            {
-              end: '2023-09-30',
-              val: 6.13,
-              fy: 2023,
-              fp: 'FY',
-              form: '10-K',
-              filed: '2023-11-03',
-              accn: '0000320193-23-000001',
-            },
-          ],
+        {
+          end: '2023-03-31',
+          val: 94836000000,
+          fy: 2023,
+          fp: 'Q2',
+          form: '10-Q',
+          filed: '2023-05-05',
+          accn: '0000320193-23-000003',
         },
-      },
-      Assets: {
-        label: 'Total Assets',
-        units: {
-          USD: [
-            {
-              end: '2023-09-30',
-              val: 352583000000,
-              fy: 2023,
-              fp: 'FY',
-              form: '10-K',
-              filed: '2023-11-03',
-              accn: '0000320193-23-000001',
-            },
-          ],
+        {
+          end: '2022-12-31',
+          val: 117154000000,
+          fy: 2023,
+          fp: 'Q1',
+          form: '10-Q',
+          filed: '2023-02-03',
+          accn: '0000320193-23-000004',
         },
-      },
-      Liabilities: {
-        label: 'Total Liabilities',
-        units: {
-          USD: [
-            {
-              end: '2023-09-30',
-              val: 290437000000,
-              fy: 2023,
-              fp: 'FY',
-              form: '10-K',
-              filed: '2023-11-03',
-              accn: '0000320193-23-000001',
-            },
-          ],
-        },
-      },
-      ...gaapOverrides,
+      ],
     },
   },
-});
+  NetIncomeLoss: {
+    units: {
+      USD: [
+        {
+          end: '2023-09-30',
+          val: 96995000000,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: '0000320193-23-000001',
+        },
+        {
+          end: '2023-06-30',
+          val: 19881000000,
+          fy: 2023,
+          fp: 'Q3',
+          form: '10-Q',
+          filed: '2023-08-04',
+          accn: '0000320193-23-000002',
+        },
+      ],
+    },
+  },
+  EarningsPerShareDiluted: {
+    units: {
+      'USD/shares': [
+        {
+          end: '2023-09-30',
+          val: 6.13,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: '0000320193-23-000001',
+        },
+      ],
+    },
+  },
+  Assets: {
+    units: {
+      USD: [
+        {
+          end: '2023-09-30',
+          val: 352583000000,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: '0000320193-23-000001',
+        },
+      ],
+    },
+  },
+  Liabilities: {
+    units: {
+      USD: [
+        {
+          end: '2023-09-30',
+          val: 290437000000,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: '0000320193-23-000001',
+        },
+      ],
+    },
+  },
+};
 
 const makeSubmissions = (
   filingOverrides: Partial<{
@@ -165,6 +153,21 @@ const makeSubmissions = (
   },
 });
 
+const mockConceptByName = (
+  overrides: Record<string, { units: Record<string, unknown[]> }> = {},
+) => {
+  const concepts = { ...APPLE_CONCEPTS, ...overrides };
+  return (cik: string, concept: string) => {
+    const data = concepts[concept];
+    if (data) return Promise.resolve(data);
+    return Promise.reject(
+      new NotFoundException(
+        `No XBRL data for concept ${concept} and CIK ${cik}`,
+      ),
+    );
+  };
+};
+
 describe('EdgarService', () => {
   let service: EdgarService;
   let edgarClient: jest.Mocked<EdgarClient>;
@@ -178,6 +181,7 @@ describe('EdgarService', () => {
           useValue: {
             fetchCompanyTickers: jest.fn(),
             fetchSubmissions: jest.fn(),
+            fetchCompanyConcept: jest.fn(),
             fetchCompanyFacts: jest.fn(),
             fetchFullTextSearch: jest.fn(),
           },
@@ -251,9 +255,9 @@ describe('EdgarService', () => {
   });
 
   describe('getMetrics', () => {
-    it('extracts Revenue from companyfacts', async () => {
+    it('extracts Revenue from companyconcept', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue(makeCompanyFacts());
+      edgarClient.fetchCompanyConcept.mockImplementation(mockConceptByName());
 
       const result = await service.getMetrics('AAPL');
 
@@ -261,9 +265,9 @@ describe('EdgarService', () => {
       expect(result.revenue?.val).toBe(383285000000);
     });
 
-    it('extracts Net Income from companyfacts', async () => {
+    it('extracts Net Income from companyconcept', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue(makeCompanyFacts());
+      edgarClient.fetchCompanyConcept.mockImplementation(mockConceptByName());
 
       const result = await service.getMetrics('AAPL');
 
@@ -273,30 +277,26 @@ describe('EdgarService', () => {
 
     it('uses SalesRevenueNet fallback when Revenues is not present', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue({
-        cik: 320193,
-        entityName: 'Apple Inc.',
-        facts: {
-          'us-gaap': {
-            SalesRevenueNet: {
-              label: 'Sales Revenue Net',
-              units: {
-                USD: [
-                  {
-                    end: '2020-12-31',
-                    val: 999999,
-                    fy: 2020,
-                    fp: 'FY',
-                    form: '10-K',
-                    filed: '2021-01-01',
-                    accn: '1',
-                  },
-                ],
-              },
+      edgarClient.fetchCompanyConcept.mockImplementation(
+        mockConceptByName({
+          Revenues: undefined as never,
+          SalesRevenueNet: {
+            units: {
+              USD: [
+                {
+                  end: '2020-12-31',
+                  val: 999999,
+                  fy: 2020,
+                  fp: 'FY',
+                  form: '10-K',
+                  filed: '2021-01-01',
+                  accn: '1',
+                },
+              ],
             },
           },
-        },
-      });
+        }),
+      );
 
       const result = await service.getMetrics('AAPL');
 
@@ -306,38 +306,38 @@ describe('EdgarService', () => {
 
     it('uses RevenueFromContractWithCustomerExcludingAssessedTax as second fallback', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue({
-        cik: 320193,
-        entityName: 'Apple Inc.',
-        facts: {
-          'us-gaap': {
-            RevenueFromContractWithCustomerExcludingAssessedTax: {
-              label: 'Revenue from contracts',
-              units: {
-                USD: [
-                  {
-                    end: '2021-12-31',
-                    val: 777777,
-                    fy: 2021,
-                    fp: 'FY',
-                    form: '10-K',
-                    filed: '2022-01-01',
-                    accn: '1',
-                  },
-                ],
-              },
+      edgarClient.fetchCompanyConcept.mockImplementation(
+        mockConceptByName({
+          Revenues: undefined as never,
+          SalesRevenueNet: undefined as never,
+          RevenueFromContractWithCustomerExcludingAssessedTax: {
+            units: {
+              USD: [
+                {
+                  end: '2021-12-31',
+                  val: 777777,
+                  fy: 2021,
+                  fp: 'FY',
+                  form: '10-K',
+                  filed: '2022-01-01',
+                  accn: '1',
+                },
+              ],
             },
           },
-        },
-      });
+        }),
+      );
 
       const result = await service.getMetrics('AAPL');
 
       expect(result.revenue?.val).toBe(777777);
     });
 
-    it('returns null for metric when concept is not present in facts', async () => {
+    it('returns null for metric when concept is not present and facts has no data', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
+      edgarClient.fetchCompanyConcept.mockRejectedValue(
+        new NotFoundException('No XBRL data for concept'),
+      );
       edgarClient.fetchCompanyFacts.mockResolvedValue({
         cik: 320193,
         entityName: 'Apple Inc.',
@@ -350,41 +350,28 @@ describe('EdgarService', () => {
       expect(result.netIncome).toBeNull();
     });
 
-    it('picks the concept with the most recent data when Revenues has older data than RevenueFromContractWithCustomerExcludingAssessedTax', async () => {
+    it('falls back to companyfacts when all companyconcept calls return 404', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
+      edgarClient.fetchCompanyConcept.mockRejectedValue(
+        new NotFoundException('No XBRL data for concept'),
+      );
       edgarClient.fetchCompanyFacts.mockResolvedValue({
         cik: 320193,
         entityName: 'Apple Inc.',
         facts: {
           'us-gaap': {
             Revenues: {
-              label: 'Revenues (old standard)',
+              label: 'Revenue',
               units: {
                 USD: [
                   {
-                    end: '2018-09-29',
-                    val: 265595000000,
-                    fy: 2018,
+                    end: '2023-09-30',
+                    val: 383285000000,
+                    fy: 2023,
                     fp: 'FY',
                     form: '10-K',
-                    filed: '2018-11-05',
-                    accn: '0000320193-18-000001',
-                  },
-                ],
-              },
-            },
-            RevenueFromContractWithCustomerExcludingAssessedTax: {
-              label: 'Revenue ASC 606',
-              units: {
-                USD: [
-                  {
-                    end: '2024-09-28',
-                    val: 391035000000,
-                    fy: 2024,
-                    fp: 'FY',
-                    form: '10-K',
-                    filed: '2024-11-01',
-                    accn: '0000320193-24-000001',
+                    filed: '2023-11-03',
+                    accn: 'x',
                   },
                 ],
               },
@@ -395,46 +382,79 @@ describe('EdgarService', () => {
 
       const result = await service.getMetrics('AAPL');
 
+      expect(result.revenue).not.toBeNull();
+      expect(result.revenue?.val).toBe(383285000000);
+      expect(edgarClient.fetchCompanyFacts.mock.calls).toContainEqual([
+        '0000320193',
+      ]);
+    });
+
+    it('picks the concept with the most recent data when Revenues has older data than RevenueFromContractWithCustomerExcludingAssessedTax', async () => {
+      edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
+      edgarClient.fetchCompanyConcept.mockImplementation(
+        mockConceptByName({
+          Revenues: {
+            units: {
+              USD: [
+                {
+                  end: '2018-09-29',
+                  val: 265595000000,
+                  fy: 2018,
+                  fp: 'FY',
+                  form: '10-K',
+                  filed: '2018-11-05',
+                  accn: '0000320193-18-000001',
+                },
+              ],
+            },
+          },
+          RevenueFromContractWithCustomerExcludingAssessedTax: {
+            units: {
+              USD: [
+                {
+                  end: '2024-09-28',
+                  val: 391035000000,
+                  fy: 2024,
+                  fp: 'FY',
+                  form: '10-K',
+                  filed: '2024-11-01',
+                  accn: '0000320193-24-000001',
+                },
+              ],
+            },
+          },
+        }),
+      );
+
+      const result = await service.getMetrics('AAPL');
+
       expect(result.revenue?.val).toBe(391035000000);
       expect(result.revenue?.fy).toBe(2024);
     });
 
     it('metrics.revenue is the single most recent data point', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue(makeCompanyFacts());
+      edgarClient.fetchCompanyConcept.mockImplementation(mockConceptByName());
 
       const result = await service.getMetrics('AAPL');
 
       expect(result.revenue?.end).toBe('2023-09-30');
     });
 
-    it('resolves ticker to 10-digit CIK before calling fetchCompanyFacts', async () => {
+    it('resolves ticker to 10-digit CIK before calling fetchCompanyConcept', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue(makeCompanyFacts());
+      edgarClient.fetchCompanyConcept.mockImplementation(mockConceptByName());
 
       await service.getMetrics('AAPL');
 
-      expect(edgarClient.fetchCompanyFacts.mock.calls).toContainEqual([
-        '0000320193',
-      ]);
+      expect(
+        edgarClient.fetchCompanyConcept.mock.calls.map((c) => c[0]),
+      ).toContain('0000320193');
     });
 
-    it('throws NotFoundException with ticker name when companyfacts has no XBRL data', async () => {
+    it('propagates BadGatewayException when SEC is unavailable', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockRejectedValue(
-        new NotFoundException(
-          'No XBRL financial data available for CIK 0000320193',
-        ),
-      );
-
-      await expect(service.getMetrics('AAPL')).rejects.toThrow(
-        'No XBRL financial data found for ticker AAPL',
-      );
-    });
-
-    it('propagates BadGatewayException when SEC is unavailable for companyfacts', async () => {
-      edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockRejectedValue(
+      edgarClient.fetchCompanyConcept.mockRejectedValue(
         new BadGatewayException(
           'SEC EDGAR request failed: 503 Service Unavailable',
         ),
@@ -457,7 +477,7 @@ describe('EdgarService', () => {
   describe('getHistoricalMetrics', () => {
     it('returns multiple quarterly data points for revenue', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue(makeCompanyFacts());
+      edgarClient.fetchCompanyConcept.mockImplementation(mockConceptByName());
 
       const result = await service.getHistoricalMetrics('AAPL');
 
@@ -486,9 +506,11 @@ describe('EdgarService', () => {
         accn: '0001234567-20-000001',
       }));
 
-      const factsWithMany = makeCompanyFacts();
-      factsWithMany.facts['us-gaap'].Revenues.units.USD = manyPoints;
-      edgarClient.fetchCompanyFacts.mockResolvedValue(factsWithMany);
+      edgarClient.fetchCompanyConcept.mockImplementation(
+        mockConceptByName({
+          Revenues: { units: { USD: manyPoints } },
+        }),
+      );
 
       const result = await service.getHistoricalMetrics('AAPL');
 
@@ -497,7 +519,7 @@ describe('EdgarService', () => {
 
     it('revenue historical points are sorted from most recent to oldest', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue(makeCompanyFacts());
+      edgarClient.fetchCompanyConcept.mockImplementation(mockConceptByName());
 
       const result = await service.getHistoricalMetrics('AAPL');
 
@@ -508,46 +530,40 @@ describe('EdgarService', () => {
 
     it('picks the concept with most recent data for historical revenue', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue({
-        cik: 320193,
-        entityName: 'Apple Inc.',
-        facts: {
-          'us-gaap': {
-            Revenues: {
-              label: 'Revenues (old standard)',
-              units: {
-                USD: [
-                  {
-                    end: '2018-09-29',
-                    val: 265595000000,
-                    fy: 2018,
-                    fp: 'FY',
-                    form: '10-K',
-                    filed: '2018-11-05',
-                    accn: '0000320193-18-000001',
-                  },
-                ],
-              },
-            },
-            RevenueFromContractWithCustomerExcludingAssessedTax: {
-              label: 'Revenue ASC 606',
-              units: {
-                USD: [
-                  {
-                    end: '2024-09-28',
-                    val: 391035000000,
-                    fy: 2024,
-                    fp: 'FY',
-                    form: '10-K',
-                    filed: '2024-11-01',
-                    accn: '0000320193-24-000001',
-                  },
-                ],
-              },
+      edgarClient.fetchCompanyConcept.mockImplementation(
+        mockConceptByName({
+          Revenues: {
+            units: {
+              USD: [
+                {
+                  end: '2018-09-29',
+                  val: 265595000000,
+                  fy: 2018,
+                  fp: 'FY',
+                  form: '10-K',
+                  filed: '2018-11-05',
+                  accn: '0000320193-18-000001',
+                },
+              ],
             },
           },
-        },
-      });
+          RevenueFromContractWithCustomerExcludingAssessedTax: {
+            units: {
+              USD: [
+                {
+                  end: '2024-09-28',
+                  val: 391035000000,
+                  fy: 2024,
+                  fp: 'FY',
+                  form: '10-K',
+                  filed: '2024-11-01',
+                  accn: '0000320193-24-000001',
+                },
+              ],
+            },
+          },
+        }),
+      );
 
       const result = await service.getHistoricalMetrics('AAPL');
 
@@ -555,28 +571,32 @@ describe('EdgarService', () => {
       expect(result.revenue[0].val).toBe(391035000000);
     });
 
-    it('throws NotFoundException with ticker name when companyfacts has no XBRL data', async () => {
+    it('returns empty arrays when no concept data and companyfacts is also empty', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockRejectedValue(
-        new NotFoundException(
-          'No XBRL financial data available for CIK 0000320193',
-        ),
+      edgarClient.fetchCompanyConcept.mockRejectedValue(
+        new NotFoundException('No XBRL data for concept'),
       );
+      edgarClient.fetchCompanyFacts.mockResolvedValue({
+        cik: 320193,
+        entityName: 'Apple Inc.',
+        facts: { 'us-gaap': {} },
+      });
 
-      await expect(service.getHistoricalMetrics('AAPL')).rejects.toThrow(
-        'No XBRL financial data found for ticker AAPL',
-      );
+      const result = await service.getHistoricalMetrics('AAPL');
+
+      expect(result.revenue).toHaveLength(0);
+      expect(result.netIncome).toHaveLength(0);
     });
 
-    it('resolves ticker to 10-digit CIK before calling fetchCompanyFacts', async () => {
+    it('resolves ticker to 10-digit CIK before calling fetchCompanyConcept', async () => {
       edgarClient.fetchCompanyTickers.mockResolvedValue(APPLE_TICKERS);
-      edgarClient.fetchCompanyFacts.mockResolvedValue(makeCompanyFacts());
+      edgarClient.fetchCompanyConcept.mockImplementation(mockConceptByName());
 
       await service.getHistoricalMetrics('AAPL');
 
-      expect(edgarClient.fetchCompanyFacts.mock.calls).toContainEqual([
-        '0000320193',
-      ]);
+      expect(
+        edgarClient.fetchCompanyConcept.mock.calls.map((c) => c[0]),
+      ).toContain('0000320193');
     });
   });
 

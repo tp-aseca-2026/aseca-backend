@@ -269,6 +269,155 @@ export const makeSubmissionsData = (
   },
 });
 
+export type SecConceptsData = Record<string, SecFact>;
+
+export const APPLE_CONCEPTS: SecConceptsData = {
+  Revenues: {
+    label: 'Revenue',
+    units: {
+      USD: [
+        {
+          end: '2023-09-30',
+          val: 383285000000,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: 'x',
+        },
+        {
+          end: '2023-06-30',
+          val: 81797000000,
+          fy: 2023,
+          fp: 'Q3',
+          form: '10-Q',
+          filed: '2023-08-04',
+          accn: 'x',
+        },
+        {
+          end: '2023-03-31',
+          val: 94836000000,
+          fy: 2023,
+          fp: 'Q2',
+          form: '10-Q',
+          filed: '2023-05-05',
+          accn: 'x',
+        },
+      ],
+    },
+  },
+  NetIncomeLoss: {
+    label: 'Net Income',
+    units: {
+      USD: [
+        {
+          end: '2023-09-30',
+          val: 96995000000,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: 'x',
+        },
+      ],
+    },
+  },
+  EarningsPerShareDiluted: {
+    label: 'EPS Diluted',
+    units: {
+      'USD/shares': [
+        {
+          end: '2023-09-30',
+          val: 6.13,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: 'x',
+        },
+      ],
+    },
+  },
+  Assets: {
+    label: 'Total Assets',
+    units: {
+      USD: [
+        {
+          end: '2023-09-30',
+          val: 352583000000,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: 'x',
+        },
+      ],
+    },
+  },
+  Liabilities: {
+    label: 'Total Liabilities',
+    units: {
+      USD: [
+        {
+          end: '2023-09-30',
+          val: 290437000000,
+          fy: 2023,
+          fp: 'FY',
+          form: '10-K',
+          filed: '2023-11-03',
+          accn: 'x',
+        },
+      ],
+    },
+  },
+};
+
+export const mockFetchForConcepts =
+  (
+    tickersData: SecTickerData,
+    conceptsCall:
+      | { concepts: SecConceptsData }
+      | { error: { status: number; statusText: string } },
+    factsFallback?:
+      | { data: SecFactsData }
+      | { error: { status: number; statusText: string } },
+  ) =>
+  (url: FetchInput): Promise<Response> => {
+    const urlStr = getUrlString(url);
+
+    if (urlStr.includes('company_tickers.json')) {
+      return Promise.resolve(jsonResponse(tickersData));
+    }
+
+    if ('error' in conceptsCall) {
+      return Promise.resolve(
+        errorResponse(conceptsCall.error.status, conceptsCall.error.statusText),
+      );
+    }
+
+    const conceptMatch = urlStr.match(/\/us-gaap\/([^/]+)\.json/);
+    if (conceptMatch) {
+      const concept = conceptMatch[1];
+      const data = conceptsCall.concepts[concept];
+      if (data) return Promise.resolve(jsonResponse(data));
+      return Promise.resolve(jsonResponse({}, 404));
+    }
+
+    if (urlStr.includes('companyfacts')) {
+      if (!factsFallback) return Promise.resolve(jsonResponse({}, 404));
+      if ('error' in factsFallback)
+        return Promise.resolve(
+          errorResponse(
+            factsFallback.error.status,
+            factsFallback.error.statusText,
+          ),
+        );
+      return Promise.resolve(jsonResponse(factsFallback.data));
+    }
+
+    return Promise.resolve(jsonResponse({}, 404));
+  };
+
 export const mockFetchForTicker =
   (
     tickersData: unknown,
