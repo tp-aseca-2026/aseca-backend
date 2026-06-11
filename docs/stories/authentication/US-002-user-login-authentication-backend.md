@@ -1,14 +1,16 @@
-US-002 — Login de usuario (Backend API)
+US-002 — Login y autenticación en backend
 
 Descripción
-Implementar autenticación backend para usuarios registrados.
+Implementar la API de login y el mecanismo de autenticación.
 
 User Story
-Como usuario, quiero autenticarme con mis credenciales para acceder a mi cuenta.
+Como usuario registrado, quiero iniciar sesión con mis credenciales para acceder de forma segura a mi portfolio, watchlist y consultas financieras.
 
 Criterios de aceptación
 - Existe endpoint de login.
-- Credenciales válidas permiten autenticación.
-- Credenciales inválidas son rechazadas.
-- Se retorna token de sesión válido.
+- El sistema permite iniciar sesión con credenciales válidas.
+- El sistema rechaza credenciales inválidas.
+- El login retorna un token o mecanismo de sesión válido.
+- Las rutas protegidas requieren autenticación.
+- El usuario autenticado solo accede a su propia información.
 

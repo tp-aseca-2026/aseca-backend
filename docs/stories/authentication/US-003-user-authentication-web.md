@@ -1,14 +1,15 @@
-US-003 — Registro/Login en aplicación web
+US-003 — Registro e inicio de sesión en web
 
 Descripción
-Implementar interfaz web para autenticación.
+Implementar las pantallas web de registro e inicio de sesión.
 
 User Story
-Como usuario, quiero registrarme e iniciar sesión desde web para acceder a la plataforma.
+Como usuario, quiero registrarme e iniciar sesión desde la aplicación web para acceder a la plataforma desde el navegador.
 
 Criterios de aceptación
-- Existe formulario de registro.
-- Existe formulatio de login.
-- Se validan inputs.
-- Se muestran errores apropiados.
-- La autenticación consume backend real.
+- Existe una pantalla web de registro. 
+- Existe una pantalla web de login. 
+- Los formularios validan los datos ingresados. 
+- Se muestran mensajes de error ante credenciales inválidas o datos incorrectos. 
+- La web consume la API real de autenticación. 
+- Luego del login exitoso, el usuario accede a la aplicación.
