@@ -45,6 +45,7 @@ export const MOCK_UPDATE_RESULT: RunUpdateResult = {
   processed: 2,
   saved: 2,
   failed: [],
+  reused: [],
   updatedAt: '2026-05-22T10:00:00.000Z',
 };
 
