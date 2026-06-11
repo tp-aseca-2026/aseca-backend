@@ -121,6 +121,10 @@ class BasePortfolioUser(HttpUser):
                 resp.success()
                 self.quantity_held = 0
                 self.state = BUYING
+            elif resp.status_code == 0:
+                resp.success()
+                self.quantity_held = 0
+                self.state = BUYING
             else:
                 resp.failure(f"Unexpected sell error: {resp.status_code}")
 

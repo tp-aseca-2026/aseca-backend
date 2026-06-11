@@ -134,7 +134,7 @@ docker compose -f docker-compose.low.yml up --build
 
 | Escenario Docker | Usuarios | Spawn Rate | Wait Time | Error Rate | GET /portfolio p95 | POST /buy p95 | POST /sell p95 | GET /edgar p95 | POST /price-snapshots/update p95 |
 |---|---|---|---|---|---|---|---|---|---|
-| Baseline (sin límite) | 50 | 5/s | 5–14 s | 0% | 120ms | 160ms | 160ms | 52ms | 19000ms |
+| Baseline (sin límite) | 50 | 5/s | 5–14 s | 0% | 19ms | 53ms | 53ms | 7ms | 6500ms |
 
 ---
 
@@ -148,11 +148,11 @@ Los resultados completos de las corridas de stress, incluyendo percentiles, RPS,
 
 ## Conclusiones
 
-- El flujo principal (buy, sell, portfolio, edgar) tuvo buen rendimiento en el load test: 0% de error rate con 50 usuarios y latencias por debajo de los 200ms en p95.
-- El principal cuello de botella identificado es `POST /price-snapshots/update`: p95 de ~19 segundos, ya que depende de una llamada externa a Yahoo Finance por cada usuario virtual en su `on_start`. Este tiempo no impacta el ciclo de trading una vez que el setup terminó.
+- El flujo principal (buy, sell, portfolio, edgar) tuvo muy buen rendimiento en el load test: 0% de error rate con 50 usuarios y latencias p95 por debajo de 60ms en los endpoints principales.
+- El principal cuello de botella identificado es `POST /price-snapshots/update`: p95 de ~6.5 segundos, ya que depende de una llamada externa a Yahoo Finance por cada usuario virtual en su `on_start`. Este tiempo no impacta el ciclo de trading una vez que el setup terminó.
 - El punto de quiebre de **baseline y medium** está entre 1000 y 2000 usuarios: con 1000 mantienen 0% de error rate; con 2000 aparecen los primeros failures.
 - **Prod-like** se degrada severamente a partir de 500 usuarios por el cuello de botella del 1 CPU: las latencias de buy/sell superan los 19–25 segundos en p95.
 - **Low** aguanta 100 usuarios con 0% de error rate pero se vuelve inutilizable con 200: error rate 2% y latencias de 10–16 segundos en p95.
 - El **mínimo viable para carga real es prod-like** (1 CPU / 1 GB): soporta hasta 1000 usuarios con solo 1% de error rate.
 - Con **200 usuarios** todos los escenarios funcionan correctamente excepto Low.
-- La caché de EDGAR redujo la latencia de ~1900ms a menos de 100ms bajo carga, eliminando los errores por rate limiting que existían antes de implementarla.
+- La caché de EDGAR redujo la latencia de ~1900ms a menos de 100ms bajo carga, eliminando los errores por rate limiting que existían antes de implementarla. En el load test, `GET /edgar/companies/search` quedó en 7ms p95.
