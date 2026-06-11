@@ -1,12 +1,12 @@
 import request from 'supertest';
 import {
+  APPLE_CONCEPTS,
   buildApp,
   EdgarClient,
   jsonResponse,
   makeFactsData,
   MetricsResponse,
-  mockFetchForTicker,
-  SecFactsData,
+  mockFetchForConcepts,
   TICKERS_DATA,
 } from './helpers';
 
@@ -34,7 +34,7 @@ describe('GET /edgar/companies/:ticker/metrics (integration)', () => {
 
   it('returns 200 with all five metric fields', async () => {
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, { data: makeFactsData() }),
+      mockFetchForConcepts(TICKERS_DATA, { concepts: APPLE_CONCEPTS }),
     );
 
     const res = await request(app.getHttpServer())
@@ -51,7 +51,7 @@ describe('GET /edgar/companies/:ticker/metrics (integration)', () => {
 
   it('returns each metric with the correct data point shape', async () => {
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, { data: makeFactsData() }),
+      mockFetchForConcepts(TICKERS_DATA, { concepts: APPLE_CONCEPTS }),
     );
 
     const res = await request(app.getHttpServer())
@@ -75,7 +75,7 @@ describe('GET /edgar/companies/:ticker/metrics (integration)', () => {
 
   it('returns the most recent single data point for revenue', async () => {
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, { data: makeFactsData() }),
+      mockFetchForConcepts(TICKERS_DATA, { concepts: APPLE_CONCEPTS }),
     );
 
     const res = await request(app.getHttpServer())
@@ -93,15 +93,19 @@ describe('GET /edgar/companies/:ticker/metrics (integration)', () => {
     expect(body.revenue.val).toBe(383285000000);
   });
 
-  it('returns null for metrics absent from GAAP facts', async () => {
-    const emptyFacts: SecFactsData = {
-      cik: 320193,
-      entityName: 'Apple Inc.',
-      facts: { 'us-gaap': {} },
-    };
-
+  it('returns null for metrics when no concept data and companyfacts is also empty', async () => {
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, { data: emptyFacts }),
+      mockFetchForConcepts(
+        TICKERS_DATA,
+        { concepts: {} },
+        {
+          data: {
+            cik: 320193,
+            entityName: 'Apple Inc.',
+            facts: { 'us-gaap': {} },
+          },
+        },
+      ),
     );
 
     const res = await request(app.getHttpServer())
@@ -113,12 +117,28 @@ describe('GET /edgar/companies/:ticker/metrics (integration)', () => {
     expect(body.netIncome).toBeNull();
   });
 
+  it('falls back to companyfacts when all companyconcept calls return 404', async () => {
+    fetchSpy.mockImplementation(
+      mockFetchForConcepts(
+        TICKERS_DATA,
+        { concepts: {} },
+        { data: makeFactsData() },
+      ),
+    );
+
+    const res = await request(app.getHttpServer())
+      .get('/edgar/companies/AAPL/metrics')
+      .expect(200);
+    const body = res.body as MetricsResponse;
+
+    expect(body.revenue).not.toBeNull();
+    expect(body.revenue?.val).toBe(383285000000);
+  });
+
   it('falls back to SalesRevenueNet when Revenues is absent', async () => {
-    const fallbackFacts: SecFactsData = {
-      cik: 320193,
-      entityName: 'Apple Inc.',
-      facts: {
-        'us-gaap': {
+    fetchSpy.mockImplementation(
+      mockFetchForConcepts(TICKERS_DATA, {
+        concepts: {
           SalesRevenueNet: {
             label: 'Sales Revenue Net',
             units: {
@@ -136,11 +156,7 @@ describe('GET /edgar/companies/:ticker/metrics (integration)', () => {
             },
           },
         },
-      },
-    };
-
-    fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, { data: fallbackFacts }),
+      }),
     );
 
     const res = await request(app.getHttpServer())
@@ -157,6 +173,16 @@ describe('GET /edgar/companies/:ticker/metrics (integration)', () => {
     expect(body.revenue.val).toBe(999999);
   });
 
+  it('returns 404 when company has no XBRL data in concepts nor in companyfacts', async () => {
+    fetchSpy.mockImplementation(
+      mockFetchForConcepts(TICKERS_DATA, { concepts: {} }),
+    );
+
+    await request(app.getHttpServer())
+      .get('/edgar/companies/AAPL/metrics')
+      .expect(404);
+  });
+
   it('returns 404 when ticker is not in the company list', async () => {
     fetchSpy.mockResolvedValue(jsonResponse(TICKERS_DATA));
 
@@ -165,21 +191,9 @@ describe('GET /edgar/companies/:ticker/metrics (integration)', () => {
       .expect(404);
   });
 
-  it('returns 404 when company has no XBRL financial data', async () => {
-    fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, {
-        error: { status: 404, statusText: 'Not Found' },
-      }),
-    );
-
-    await request(app.getHttpServer())
-      .get('/edgar/companies/AAPL/metrics')
-      .expect(404);
-  });
-
   it('returns 502 when the SEC facts API fails', async () => {
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, {
+      mockFetchForConcepts(TICKERS_DATA, {
         error: { status: 503, statusText: 'Service Unavailable' },
       }),
     );

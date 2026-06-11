@@ -8,7 +8,7 @@ import type {
 } from '../domain/edgar-metrics.type';
 import {
   EdgarClient,
-  type CompanyFactsRaw,
+  type CompanyConceptRaw,
   EdgarFullTextSearchRaw,
   CompanyTickersRaw,
 } from '../infrastructure/edgar.client';
@@ -25,6 +25,14 @@ type ConceptData = {
       filed: string;
     }>
   >;
+};
+
+type MetricPoints = {
+  revenue: EdgarMetricPoint[];
+  netIncome: EdgarMetricPoint[];
+  eps: EdgarMetricPoint[];
+  totalAssets: EdgarMetricPoint[];
+  totalLiabilities: EdgarMetricPoint[];
 };
 
 const MAX_SEARCH_RESULTS = 10;
@@ -91,30 +99,25 @@ export class EdgarService {
 
   async getMetrics(ticker: string): Promise<EdgarMetrics> {
     const company = await this.findByTicker(ticker);
-    const facts = await this.fetchFactsForTicker(company.cik, ticker);
-
+    const points = await this.fetchAllMetricPoints(company.cik, ticker);
     return {
-      revenue: this.getRevenuePoints(facts)[0] ?? null,
-      netIncome: this.getNetIncomePoints(facts)[0] ?? null,
-      eps: this.getEpsPoints(facts)[0] ?? null,
-      totalAssets: this.getAssetsPoints(facts)[0] ?? null,
-      totalLiabilities: this.getLiabilitiesPoints(facts)[0] ?? null,
+      revenue: points.revenue[0] ?? null,
+      netIncome: points.netIncome[0] ?? null,
+      eps: points.eps[0] ?? null,
+      totalAssets: points.totalAssets[0] ?? null,
+      totalLiabilities: points.totalLiabilities[0] ?? null,
     };
   }
 
   async getHistoricalMetrics(ticker: string): Promise<EdgarHistoricalMetrics> {
     const company = await this.findByTicker(ticker);
-    const facts = await this.fetchFactsForTicker(company.cik, ticker);
-
+    const points = await this.fetchAllMetricPoints(company.cik, ticker);
     return {
-      revenue: this.getRevenuePoints(facts).slice(0, MAX_HISTORICAL_POINTS),
-      netIncome: this.getNetIncomePoints(facts).slice(0, MAX_HISTORICAL_POINTS),
-      eps: this.getEpsPoints(facts).slice(0, MAX_HISTORICAL_POINTS),
-      totalAssets: this.getAssetsPoints(facts).slice(0, MAX_HISTORICAL_POINTS),
-      totalLiabilities: this.getLiabilitiesPoints(facts).slice(
-        0,
-        MAX_HISTORICAL_POINTS,
-      ),
+      revenue: points.revenue.slice(0, MAX_HISTORICAL_POINTS),
+      netIncome: points.netIncome.slice(0, MAX_HISTORICAL_POINTS),
+      eps: points.eps.slice(0, MAX_HISTORICAL_POINTS),
+      totalAssets: points.totalAssets.slice(0, MAX_HISTORICAL_POINTS),
+      totalLiabilities: points.totalLiabilities.slice(0, MAX_HISTORICAL_POINTS),
     };
   }
 
@@ -139,86 +142,125 @@ export class EdgarService {
     return String(cik).padStart(10, '0');
   }
 
-  private async fetchFactsForTicker(
+  private async fetchAllMetricPoints(
     cik: string,
     ticker: string,
-  ): Promise<CompanyFactsRaw> {
-    return this.edgarClient.fetchCompanyFacts(cik).catch((err: unknown) => {
-      if (err instanceof NotFoundException) {
-        throw new NotFoundException(
-          `No XBRL financial data found for ticker ${ticker}`,
-        );
-      }
-      throw err;
-    });
-  }
+  ): Promise<MetricPoints> {
+    const [revenue, netIncome, eps, totalAssets, totalLiabilities] =
+      await Promise.all([
+        this.fetchRevenuePoints(cik),
+        this.fetchConceptPoints(cik, 'NetIncomeLoss', 'USD'),
+        this.fetchEpsPoints(cik),
+        this.fetchConceptPoints(cik, 'Assets', 'USD'),
+        this.fetchConceptPoints(cik, 'Liabilities', 'USD'),
+      ]);
 
-  private getRevenuePoints(facts: CompanyFactsRaw): EdgarMetricPoint[] {
-    const gaap = facts.facts['us-gaap'];
-    if (!gaap) return [];
-
-    const candidates = (
-      [
-        gaap['Revenues'],
-        gaap['SalesRevenueNet'],
-        gaap['RevenueFromContractWithCustomerExcludingAssessedTax'],
-      ] as Array<ConceptData | undefined>
-    ).filter((c): c is ConceptData => c != null);
-
-    return this.pickMostRecentConceptPoints(candidates, 'USD');
-  }
-
-  private getNetIncomePoints(facts: CompanyFactsRaw): EdgarMetricPoint[] {
-    const gaap = facts.facts['us-gaap'];
-    if (!gaap) return [];
-    const concept = gaap['NetIncomeLoss'] as ConceptData | undefined;
-    if (!concept) return [];
-    return this.extractPoints(concept, 'USD');
-  }
-
-  private getEpsPoints(facts: CompanyFactsRaw): EdgarMetricPoint[] {
-    const gaap = facts.facts['us-gaap'];
-    if (!gaap) return [];
-    const concept = (gaap['EarningsPerShareDiluted'] ??
-      gaap['EarningsPerShareBasic']) as ConceptData | undefined;
-    if (!concept) return [];
-    const unit = concept.units['USD/shares'] ? 'USD/shares' : 'USD';
-    return this.extractPoints(concept, unit);
-  }
-
-  private getAssetsPoints(facts: CompanyFactsRaw): EdgarMetricPoint[] {
-    const gaap = facts.facts['us-gaap'];
-    if (!gaap) return [];
-    const concept = gaap['Assets'] as ConceptData | undefined;
-    if (!concept) return [];
-    return this.extractPoints(concept, 'USD');
-  }
-
-  private getLiabilitiesPoints(facts: CompanyFactsRaw): EdgarMetricPoint[] {
-    const gaap = facts.facts['us-gaap'];
-    if (!gaap) return [];
-    const concept = gaap['Liabilities'] as ConceptData | undefined;
-    if (!concept) return [];
-    return this.extractPoints(concept, 'USD');
-  }
-
-  private pickMostRecentConceptPoints(
-    candidates: ConceptData[],
-    unit: string,
-  ): EdgarMetricPoint[] {
-    let bestPoints: EdgarMetricPoint[] = [];
-
-    for (const concept of candidates) {
-      const points = this.extractPoints(concept, unit);
-      if (
-        points.length > 0 &&
-        (bestPoints.length === 0 || points[0].end > bestPoints[0].end)
-      ) {
-        bestPoints = points;
-      }
+    if (
+      [revenue, netIncome, eps, totalAssets, totalLiabilities].every(
+        (p) => p.length === 0,
+      )
+    ) {
+      return this.fetchAllMetricPointsFromFacts(cik, ticker);
     }
 
-    return bestPoints;
+    return { revenue, netIncome, eps, totalAssets, totalLiabilities };
+  }
+
+  private async fetchAllMetricPointsFromFacts(
+    cik: string,
+    ticker: string,
+  ): Promise<MetricPoints> {
+    const facts = await this.edgarClient
+      .fetchCompanyFacts(cik)
+      .catch((err: unknown) => {
+        if (err instanceof NotFoundException) {
+          throw new NotFoundException(
+            `No XBRL financial data found for ticker ${ticker}`,
+          );
+        }
+        throw err;
+      });
+
+    const gaap = facts.facts['us-gaap'] ?? {};
+
+    const fromGaap = (concept: string, unit: string): EdgarMetricPoint[] => {
+      const data = gaap[concept] as ConceptData | undefined;
+      return data ? this.extractPoints(data, unit) : [];
+    };
+
+    const epsData = (gaap['EarningsPerShareDiluted'] ??
+      gaap['EarningsPerShareBasic']) as ConceptData | undefined;
+    const epsUnit = epsData?.units['USD/shares'] ? 'USD/shares' : 'USD';
+
+    return {
+      revenue: this.pickMostRecentPoints([
+        fromGaap('Revenues', 'USD'),
+        fromGaap('SalesRevenueNet', 'USD'),
+        fromGaap('RevenueFromContractWithCustomerExcludingAssessedTax', 'USD'),
+      ]),
+      netIncome: fromGaap('NetIncomeLoss', 'USD'),
+      eps: epsData ? this.extractPoints(epsData, epsUnit) : [],
+      totalAssets: fromGaap('Assets', 'USD'),
+      totalLiabilities: fromGaap('Liabilities', 'USD'),
+    };
+  }
+
+  private async fetchConceptPoints(
+    cik: string,
+    concept: string,
+    unit: string,
+  ): Promise<EdgarMetricPoint[]> {
+    try {
+      const data = await this.edgarClient.fetchCompanyConcept(cik, concept);
+      return this.extractPoints(data, unit);
+    } catch (err) {
+      if (err instanceof NotFoundException) return [];
+      throw err;
+    }
+  }
+
+  private async fetchRevenuePoints(cik: string): Promise<EdgarMetricPoint[]> {
+    const results = await Promise.all([
+      this.fetchConceptPoints(cik, 'Revenues', 'USD'),
+      this.fetchConceptPoints(cik, 'SalesRevenueNet', 'USD'),
+      this.fetchConceptPoints(
+        cik,
+        'RevenueFromContractWithCustomerExcludingAssessedTax',
+        'USD',
+      ),
+    ]);
+    return this.pickMostRecentPoints(results);
+  }
+
+  private async fetchEpsPoints(cik: string): Promise<EdgarMetricPoint[]> {
+    for (const concept of [
+      'EarningsPerShareDiluted',
+      'EarningsPerShareBasic',
+    ]) {
+      try {
+        const data = await this.edgarClient.fetchCompanyConcept(cik, concept);
+        const unit = data.units['USD/shares'] ? 'USD/shares' : 'USD';
+        return this.extractPoints(data, unit);
+      } catch (err) {
+        if (!(err instanceof NotFoundException)) throw err;
+      }
+    }
+    return [];
+  }
+
+  private pickMostRecentPoints(
+    pointLists: EdgarMetricPoint[][],
+  ): EdgarMetricPoint[] {
+    let best: EdgarMetricPoint[] = [];
+    for (const points of pointLists) {
+      if (
+        points.length > 0 &&
+        (best.length === 0 || points[0].end > best[0].end)
+      ) {
+        best = points;
+      }
+    }
+    return best;
   }
 
   private extractCompaniesFromFullTextSearch(
@@ -295,7 +337,7 @@ export class EdgarService {
   }
 
   private extractPoints(
-    concept: ConceptData,
+    concept: ConceptData | CompanyConceptRaw,
     unit: string,
   ): EdgarMetricPoint[] {
     const unitData = concept.units[unit];

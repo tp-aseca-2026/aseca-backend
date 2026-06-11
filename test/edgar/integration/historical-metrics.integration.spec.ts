@@ -1,11 +1,11 @@
 import request from 'supertest';
 import {
+  APPLE_CONCEPTS,
   buildApp,
   EdgarClient,
   HistoricalMetricsResponse,
   jsonResponse,
-  makeFactsData,
-  mockFetchForTicker,
+  mockFetchForConcepts,
   SecFactPoint,
   TICKERS_DATA,
 } from './helpers';
@@ -34,7 +34,7 @@ describe('GET /edgar/companies/:ticker/historical-metrics (integration)', () => 
 
   it('returns 200 with arrays for all five metrics', async () => {
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, { data: makeFactsData() }),
+      mockFetchForConcepts(TICKERS_DATA, { concepts: APPLE_CONCEPTS }),
     );
 
     const res = await request(app.getHttpServer())
@@ -51,7 +51,7 @@ describe('GET /edgar/companies/:ticker/historical-metrics (integration)', () => 
 
   it('returns multiple data points sorted most-recent-first', async () => {
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, { data: makeFactsData() }),
+      mockFetchForConcepts(TICKERS_DATA, { concepts: APPLE_CONCEPTS }),
     );
 
     const res = await request(app.getHttpServer())
@@ -85,11 +85,13 @@ describe('GET /edgar/companies/:ticker/historical-metrics (integration)', () => 
       accn: 'x',
     }));
 
-    const factsWithMany = makeFactsData();
-    factsWithMany.facts['us-gaap'].Revenues.units.USD = manyPoints;
-
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, { data: factsWithMany }),
+      mockFetchForConcepts(TICKERS_DATA, {
+        concepts: {
+          ...APPLE_CONCEPTS,
+          Revenues: { label: 'Revenue', units: { USD: manyPoints } },
+        },
+      }),
     );
 
     const res = await request(app.getHttpServer())
@@ -110,7 +112,7 @@ describe('GET /edgar/companies/:ticker/historical-metrics (integration)', () => 
 
   it('returns 502 when the SEC facts API fails', async () => {
     fetchSpy.mockImplementation(
-      mockFetchForTicker(TICKERS_DATA, {
+      mockFetchForConcepts(TICKERS_DATA, {
         error: { status: 503, statusText: 'Service Unavailable' },
       }),
     );
