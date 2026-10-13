@@ -1,0 +1,42 @@
+name: Price Snapshots
+
+on:
+  schedule:
+    # Lunes a viernes, después del cierre del mercado de EE.UU. (21:30 UTC)
+    - cron: "30 21 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: "Tickers separados por coma (vacío = los de portfolios y watchlists)"
+        required: false
+        default: ""
+
+jobs:
+  update:
+    name: Update Price Snapshots
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Update price snapshots
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TICKERS: ${{ inputs.tickers }}
+        run: |
+          if [ -n "$TICKERS" ]; then
+            python scripts/update_price_snapshots.py --tickers "$TICKERS"
+          else
+            python scripts/update_price_snapshots.py
+          fi
